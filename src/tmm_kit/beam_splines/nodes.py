@@ -8,8 +8,13 @@ from tmm_kit.beam_splines.constants import (
     BEAM_SLOPE,
     BEAM_STATE_SIZE,
 )
-from tmm_kit.beam_splines.utils import adaptive_stiffness
-from tmm_kit.tmm.base import ElementEdge, TMMEquation, TMMNode
+from tmm_kit.tmm.base import (
+    ElementEdge,
+    TMMEquation,
+    TMMNode,
+    continuity_equation,
+    offset_equation,
+)
 
 
 @dataclass(slots=True, init=False)
@@ -17,14 +22,32 @@ class BeamSplineNode(TMMNode):
     """Base class for beam spline nodes.
 
     Can have only one inbound and one outbound elements.
+
+    Attributes
+    ----------
+    angle_misalignment
+        Needed for compatibility with corotational beam splines.
     """
 
+    angle_misalignment: float
+
     # Custom init limits the number of inbound and outbound elements
-    def __init__(self, inbound_element: int, outbound_element: int, **kwargs):
+    def __init__(
+        self,
+        inbound_element: int,
+        outbound_element: int,
+        angle_misalignment: float | None = None,
+        **kwargs,
+    ):
         super(BeamSplineNode, self).__init__(
             inbound_elements=[inbound_element],
             outbound_elements=[outbound_element],
         )
+
+        if angle_misalignment is None:
+            self.angle_misalignment = 0.0
+        else:
+            self.angle_misalignment = angle_misalignment
 
         # kwargs allow the init to be inherited by subclasses with additional attributes
         for key, value in kwargs.items():
@@ -38,7 +61,6 @@ class BeamSplineNode(TMMNode):
     def get_conjugation_eq_n(self) -> int:
         """Return the number of conjugation equations."""
         return BEAM_STATE_SIZE
-
 
 
 @dataclass(slots=True, init=False)
@@ -70,8 +92,8 @@ class BeamPinnedSupport(BeamSplineNode):
                 (out_el, ElementEdge.START, BEAM_DISPLACEMENT, 1),
                 self.displacement,
             ),
-            _continuity_equation(in_el, out_el, BEAM_SLOPE),
-            _continuity_equation(in_el, out_el, BEAM_MOMENT),
+            offset_equation(in_el, out_el, BEAM_SLOPE, self.angle_misalignment),
+            continuity_equation(in_el, out_el, BEAM_MOMENT),
         ]
 
 
@@ -100,9 +122,9 @@ class BeamElasticSupport(BeamSplineNode):
         out_el = self.outbound_elements[0]
 
         return [
-            _continuity_equation(in_el, out_el, BEAM_DISPLACEMENT),
-            _continuity_equation(in_el, out_el, BEAM_SLOPE),
-            _continuity_equation(in_el, out_el, BEAM_MOMENT),
+            continuity_equation(in_el, out_el, BEAM_DISPLACEMENT),
+            offset_equation(in_el, out_el, BEAM_SLOPE, self.angle_misalignment),
+            continuity_equation(in_el, out_el, BEAM_MOMENT),
             TMMEquation(
                 [
                     (out_el, ElementEdge.START, BEAM_FORCE, 1),
@@ -110,6 +132,44 @@ class BeamElasticSupport(BeamSplineNode):
                     (in_el, ElementEdge.END, BEAM_DISPLACEMENT, self.stiffness),
                 ],
                 self.stiffness * self.displacement,
+            ),
+        ]
+
+
+@dataclass(slots=True, init=False)
+class BeamElasticSupportInverted(BeamSplineNode):
+    """Beam spline elastic support node.
+
+    A very stiff BeamElasticSupport may result in high error.
+    In such cases use BeamElasticSupportInverted instead.
+
+    Attributes
+    ----------
+    displacement
+        Support displacement at the node.
+    compliance
+        Spring compliance of the support (compliance = 1 / stiffness).
+    """
+
+    displacement: float
+    compliance: float
+
+    def get_conjugation_eq(self) -> list[TMMEquation]:
+        """Return the conjugation equations connecting elements."""
+        in_el = self.inbound_elements[0]
+        out_el = self.outbound_elements[0]
+
+        return [
+            continuity_equation(in_el, out_el, BEAM_DISPLACEMENT),
+            offset_equation(in_el, out_el, BEAM_SLOPE, self.angle_misalignment),
+            continuity_equation(in_el, out_el, BEAM_MOMENT),
+            TMMEquation(
+                [
+                    (in_el, ElementEdge.END, BEAM_DISPLACEMENT, 1),
+                    (out_el, ElementEdge.START, BEAM_FORCE, -self.compliance),
+                    (in_el, ElementEdge.END, BEAM_FORCE, self.compliance),
+                ],
+                self.displacement,
             ),
         ]
 
@@ -127,18 +187,8 @@ class BeamDummyNode(BeamSplineNode):
         out_el = self.outbound_elements[0]
 
         return [
-            _continuity_equation(in_el, out_el, BEAM_DISPLACEMENT),
-            _continuity_equation(in_el, out_el, BEAM_SLOPE),
-            _continuity_equation(in_el, out_el, BEAM_MOMENT),
-            _continuity_equation(in_el, out_el, BEAM_FORCE),
+            continuity_equation(in_el, out_el, BEAM_DISPLACEMENT),
+            offset_equation(in_el, out_el, BEAM_SLOPE, self.angle_misalignment),
+            continuity_equation(in_el, out_el, BEAM_MOMENT),
+            continuity_equation(in_el, out_el, BEAM_FORCE),
         ]
-
-
-def _continuity_equation(in_el: int, out_el: int, var_i: int):
-    return TMMEquation(
-        [
-            (in_el, ElementEdge.END, var_i, 1),
-            (out_el, ElementEdge.START, var_i, -1),
-        ],
-        0,
-    )

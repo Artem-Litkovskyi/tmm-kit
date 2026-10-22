@@ -1,5 +1,5 @@
-from tmm_kit.tmm.base import ElementEdge, TMMEquation
 from tmm_kit.electrical.constants import STATE_E
+from tmm_kit.tmm.base import ElementEdge, TMMEquation
 
 
 def electrical_circuit_boundary_node(
@@ -13,7 +13,7 @@ def electrical_circuit_boundary_node(
     getting an infinite number of valid solutions (which results
     in a singular global matrix error).
     """
-    eqs  = []
+    eqs = []
 
     # Fix inbound elements equal E
     for i in inbound_elements:

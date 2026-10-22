@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
-from tmm_kit.tmm.base import ElementEdge, TMMEquation, TMMNode
 from tmm_kit.electrical.constants import STATE_E, STATE_I
+from tmm_kit.tmm.base import ElementEdge, TMMEquation, TMMNode
 
 
 @dataclass(slots=True)
@@ -22,7 +22,7 @@ class ElectricalNode(TMMNode):
                             (el_0, ElementEdge.END, STATE_E, 1),
                             (el_i, ElementEdge.END, STATE_E, -1),
                         ],
-                        0
+                        0,
                     ),
                 )
 
@@ -36,7 +36,7 @@ class ElectricalNode(TMMNode):
                             (el_0, ElementEdge.START, STATE_E, 1),
                             (el_i, ElementEdge.START, STATE_E, -1),
                         ],
-                        0
+                        0,
                     ),
                 )
 
@@ -56,10 +56,11 @@ class ElectricalNode(TMMNode):
         eqs.append(
             TMMEquation(
                 [
-                    *((i, ElementEdge.END, STATE_I, 1) \
-                      for i in self.inbound_elements),
-                    *((i, ElementEdge.START, STATE_I, -1) \
-                      for i in self.outbound_elements),
+                    *((i, ElementEdge.END, STATE_I, 1) for i in self.inbound_elements),
+                    *(
+                        (i, ElementEdge.START, STATE_I, -1)
+                        for i in self.outbound_elements
+                    ),
                 ],
                 0,
             ),

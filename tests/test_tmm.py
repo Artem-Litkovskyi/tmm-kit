@@ -1,12 +1,12 @@
 import numpy as np
 
-from tmm_kit.tmm.base import ElementEdge
-from tmm_kit.tmm.result import TMMResult
-from tmm_kit.tmm.solver import TMMSolver
-from tmm_kit.electrical.boundary_conditions import electrical_circuit_boundary_node
-from tmm_kit.electrical.constants import ELECTRICAL_STATE_SIZE
-from tmm_kit.electrical.elements import ElectricalElement
-from tmm_kit.electrical.nodes import ElectricalNode
+from tmm_kit import ElementEdge, TMMResult, TMMSolver
+from tmm_kit.electrical import (
+    ELECTRICAL_STATE_SIZE,
+    ElectricalElement,
+    ElectricalNode,
+    electrical_circuit_boundary_node,
+)
 
 # Electrical circuit setup
 ELEMENTS = [
@@ -39,24 +39,23 @@ E3 = 0.0
 # Start and end states for each element
 DESIRED_EDGE_STATES = np.array(
     [
-        [E1, I1],     # Element 0
+        [E1, I1],  # Element 0
         [E2, I1],
-        [E2, I3],     # Element 1
+        [E2, I3],  # Element 1
         [E3, I3],
-        [E3, I2],     # Element 2
+        [E3, I2],  # Element 2
         [E1, I2],
-        [E1, I2-I1],  # Element 3
-        [E1, I2-I1],
-        [E1, I3-I1],  # Element 4
-        [E2, I3-I1],
-        [E1, I2-I3],  # Element 5
-        [E3, I2-I3],
+        [E1, I2 - I1],  # Element 3
+        [E1, I2 - I1],
+        [E1, I3 - I1],  # Element 4
+        [E2, I3 - I1],
+        [E1, I2 - I3],  # Element 5
+        [E3, I2 - I3],
     ]
 )
 
 
 def test_tmm_solver():
-    """Test TMMSolver.solve."""
     solver = TMMSolver(
         ELECTRICAL_STATE_SIZE,
         ELEMENTS,
@@ -67,15 +66,11 @@ def test_tmm_solver():
     result = solver.solve()
 
     np.testing.assert_allclose(
-        result.get_all_edge_states(),
-        DESIRED_EDGE_STATES,
-        rtol=1e-6,
-        atol=1e-6
+        result.get_all_edge_states(), DESIRED_EDGE_STATES, rtol=1e-6, atol=1e-6
     )
 
 
 def test_tmm_result_evaluate_at_ends():
-    """Test TMMResult.evaluate at element ends."""
     result = TMMResult(ELEMENTS, DESIRED_EDGE_STATES)
 
     end_states = []
@@ -92,7 +87,6 @@ def test_tmm_result_evaluate_at_ends():
 
 
 def test_tmm_result_get_edge_state():
-    """Test TMMResult.get_edge_state."""
     result = TMMResult(ELEMENTS, DESIRED_EDGE_STATES)
 
     np.testing.assert_allclose(
@@ -114,7 +108,6 @@ def test_tmm_result_get_edge_state():
 
 
 def test_tmm_result_get_all_edge_states():
-    """Test TMMResult.get_all_edge_states."""
     result = TMMResult(ELEMENTS, DESIRED_EDGE_STATES)
 
     np.testing.assert_allclose(

@@ -1,6 +1,9 @@
 [project]
 name = "tmm-kit"
 version = "0.1.0"
+requires-python = ">=3.13"
+license = "MIT"
+license-files = ["LICENSE"]
 dependencies = [
     "numpy==2.5.3",
     "scipy==1.18.1",
@@ -30,6 +33,9 @@ line-length = 88
 # Enable standard Pyflakes (F), pycodestyle (E, W), isort (I), pyupgrade (UP), and pydocstyle (D)
 select = ["F", "E", "W", "I", "UP", "D"]
 ignore = ["F403", "F405", "E731", "UP040", "D100", "D104"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D"]
 
 [tool.ruff.lint.isort]
 section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]

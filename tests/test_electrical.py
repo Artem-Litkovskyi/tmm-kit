@@ -1,13 +1,10 @@
 import numpy as np
 
-from tmm_kit.tmm.base import ElementEdge
-from tmm_kit.electrical.constants import STATE_E, STATE_I
-from tmm_kit.electrical.elements import ElectricalElement
-from tmm_kit.electrical.nodes import ElectricalNode
+from tmm_kit import ElementEdge
+from tmm_kit.electrical import STATE_E, STATE_I, ElectricalElement, ElectricalNode
 
 
 def test_electrical_element_transfer_eq_for_resistor():
-    """Return the transfer matrix and zero right vector for a resistor."""
     element = ElectricalElement(2.5, 12.0, 0.0)
 
     matrix, right_vector = element.get_transfer_eq(s=element.length)
@@ -23,7 +20,6 @@ def test_electrical_element_transfer_eq_for_resistor():
 
 
 def test_electrical_element_transfer_eq_for_battery():
-    """Return the identity transfer matrix and voltage vector for a battery."""
     element = ElectricalElement(2.5, 0.0, 9.0)
 
     matrix, right_vector = element.get_transfer_eq(s=element.length)
@@ -39,7 +35,6 @@ def test_electrical_element_transfer_eq_for_battery():
 
 
 def test_electrical_node_conjugation_equations():
-    """Connect two inbound and two outbound electrical element."""
     node = ElectricalNode([3, 4], [6, 7])
 
     equations = node.get_conjugation_eq()

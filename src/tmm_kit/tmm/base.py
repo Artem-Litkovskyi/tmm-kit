@@ -68,3 +68,19 @@ class TMMNode(ABC):
     def get_conjugation_eq_n(self) -> int:
         """Return the number of conjugation equations."""
         pass
+
+
+def offset_equation(in_el: int, out_el: int, var_i: int, offset: float):
+    """Return an equation with an offset between adjacent element edges."""
+    return TMMEquation(
+        [
+            (out_el, ElementEdge.START, var_i, 1),
+            (in_el, ElementEdge.END, var_i, -1),
+        ],
+        offset,
+    )
+
+
+def continuity_equation(in_el: int, out_el: int, var_i: int):
+    """Return continuity equation."""
+    return offset_equation(in_el, out_el, var_i, 0.0)

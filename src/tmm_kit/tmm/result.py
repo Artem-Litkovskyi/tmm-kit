@@ -32,14 +32,12 @@ class TMMResult:
             Local coordinate (coordinates)
             from 0 to self.elements[element_i].length.
         """
-        eval_s = np.atleast_1d(np.asarray(s, dtype=np.float64))
-        states = np.empty(
-            (eval_s.size, self.state_size), dtype=np.float64
-        )
+        eval_s_arr = np.atleast_1d(np.asarray(s, dtype=np.float64))
+        states = np.empty((eval_s_arr.size, self.state_size), dtype=np.float64)
 
-        for i, s in enumerate(eval_s):
+        for i, eval_s in enumerate(eval_s_arr):
             start_state = self.get_edge_state(element_i, ElementEdge.START)
-            tm_A, tm_b = self.elements[element_i].get_transfer_eq(s)
+            tm_A, tm_b = self.elements[element_i].get_transfer_eq(eval_s)
             states[i] = tm_A @ start_state + tm_b
 
         if np.isscalar(s):

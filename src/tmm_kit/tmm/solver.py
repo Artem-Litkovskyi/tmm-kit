@@ -39,11 +39,11 @@ class TMMSolver:
                 f"{bcs_n} boundary conditions."
             )
 
-        self._global_matrix, self._right_vector = self._assemble_system()
-
     def solve(self) -> TMMResult:
-        """Solves the boundary value problem and returns a standalone TMMResult."""
-        edge_states = spla.spsolve(self._global_matrix, self._right_vector)
+        """Solve the boundary value problem and return a TMMResult."""
+        global_matrix, right_vector = self._assemble_system()
+
+        edge_states = spla.spsolve(global_matrix, right_vector)
 
         return TMMResult(
             elements=self.elements,
@@ -51,7 +51,6 @@ class TMMSolver:
         )
 
     def _assemble_system(self) -> tuple[sp.csr_matrix, np.ndarray]:
-        """Construct the global matrix and the right vector."""
         unknowns_n = self._calculate_unknowns_n()
 
         K = sp.lil_matrix((unknowns_n, unknowns_n), dtype=np.float64)
@@ -87,9 +86,7 @@ class TMMSolver:
         # Add equations into the matrix
         for eq in eqs:
             for seg_i, seg_side, state_var, k in eq.left_side_addends:
-                idx = self._global_matrix_index_of_var(
-                    seg_i, seg_side, state_var
-                )
+                idx = self._global_matrix_index_of_var(seg_i, seg_side, state_var)
                 K[row, idx] = k
             f[row] = eq.right_side
             row += 1
@@ -97,11 +94,9 @@ class TMMSolver:
         return sp.csr_matrix(K), f
 
     def _calculate_unknowns_n(self):
-        """Calculate the number of unknowns."""
         return 2 * self.state_size * len(self.elements)
 
     def _calculate_equations_n(self):
-        """Calculate the number of equations."""
         transfer_eqs_n = self.state_size * len(self.elements)
         conjugation_eqs_n = sum([n.get_conjugation_eq_n() for n in self.nodes])
         bcs_n = len(self.bcs)
@@ -118,6 +113,4 @@ class TMMSolver:
         self, element_i: int, element_edge: ElementEdge, state_var_i: int
     ) -> int:
         """Calculate index in the global matrix for a specific state variable."""
-        return (
-            self._global_matrix_index_of_state(element_i, element_edge) + state_var_i
-        )
+        return self._global_matrix_index_of_state(element_i, element_edge) + state_var_i

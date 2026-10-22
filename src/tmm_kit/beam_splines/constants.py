@@ -1,6 +1,6 @@
 BEAM_STATE_SIZE = 4
 
-BEAM_DISPLACEMENT = 0  # W
-BEAM_SLOPE = 1         # theta
-BEAM_MOMENT = 2        # M
-BEAM_FORCE = 3         # Q
+BEAM_DISPLACEMENT = 0  # w
+BEAM_SLOPE = 1  # theta
+BEAM_MOMENT = 2  # M
+BEAM_FORCE = 3  # Q
