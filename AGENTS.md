@@ -3,7 +3,7 @@
 This document outlines the code style and architectural patterns for math project development.
 
 ## 1. Core Stack
-* **Language:** Python 3.13
+* **Language:** Python 3.12
 * **Libraries:** `numpy` (arrays), `scipy` (solvers). Versions are pinned in `pyproject.toml`.
   Add new dependencies only with the user's approval.
 

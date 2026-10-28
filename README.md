@@ -26,7 +26,7 @@ implemented by defining your own elements, nodes and boundary conditions.
 
 ## 🚀 Getting Started
 
-Requires **Python 3.13+**.
+Requires **Python 3.12+**.
 
 ### Normal Setup
 
