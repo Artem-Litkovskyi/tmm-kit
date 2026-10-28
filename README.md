@@ -151,13 +151,6 @@ Custom conditions are built with `TMMEquation`.
 
 </details>
 
-Public API is re-exported at the package level, so there's no need to import from individual modules:
-
-- `tmm_kit` — core TMM: `TMMSolver`, `TMMResult`, `TMMEquation`, `TMMElement`, `TMMNode`, `ElementEdge`;
-- `tmm_kit.beam_splines` — beam spline elements, nodes, boundary conditions, factories, evaluation and utils
-  (conventionally imported as `bs`);
-- `tmm_kit.electrical` — electrical presets.
-
 All classes and functions have docstrings in the source code. For more usage examples see:
 - `docs/beam_spline_examples.md` — beam splines, including CBS with dummy node refinement;
 - `docs/electrical_example.md` — general TMM on a branched electrical circuit.

@@ -3,7 +3,7 @@ name = "tmm-kit"
 version = "0.1.0"
 requires-python = ">=3.13"
 license = "MIT"
-license-files = ["LICENSE"]
+license-files = ["LICENSE.md"]
 dependencies = [
     "numpy==2.5.3",
     "scipy==1.18.1",
