@@ -18,7 +18,7 @@ This document outlines the code style and architectural patterns for math projec
 
 ## 3. Type Hinting & Precision
 * **Scalars:** Use Python's built-in `float` for scalar type hints, not `np.float64`.
-* **Arrays:** Allow flexible sequenc[README.md](README.md)e inputs `Sequence[float] | np.ndarray`. Normalize them internally using
+* **Arrays:** Allow flexible sequence inputs `Sequence[float] | np.ndarray`. Normalize them internally using
   `np.asarray(points, dtype=np.float64)` with `dtype` specified to avoid accidental integers.
 * **Scalar OR Array:** Use `np.typing.ArrayLike` when the function expects either a single value or an array of them.
   Use `np.isscalar(val)` for scalar check. Use `scalar = float(arr.item())` to get the scalar value.
