@@ -1,3 +1,5 @@
+from tmm_kit.beam_splines import centered_element_length
+
 # Beam Spline Code Example
 
 This document gives a couple of examples of how to use `TMMSolver`, `BeamSpline` and `CorotationalBeamSpline`.
