@@ -106,6 +106,22 @@ class CorotationalBeamSpline(BeamSpline):
             (-self._tangents[:, 1], self._tangents[:, 0])
         )
 
+    def evaluate_element_normal(
+        self, element_i: int, s: np.typing.ArrayLike
+    ) -> np.ndarray:
+        """Evaluate a rotated normal at a given element coordinate."""
+        s_arr = np.atleast_1d(np.asarray(s, dtype=np.float64))
+        states = self.tmm_result.evaluate(element_i, s_arr)
+        _, theta, _, _ = states.T
+
+        local_x = -np.sin(theta)
+        local_y = np.cos(theta)
+
+        return (
+            np.outer(local_x, self._tangents[element_i])
+            + np.outer(local_y, self._normals[element_i])
+        )
+
     def evaluate_element_point(
         self, element_i: int, s: np.typing.ArrayLike
     ) -> np.ndarray:
@@ -148,6 +164,14 @@ class CorotationalBeamSpline(BeamSpline):
         denominator = np.pow(np.square(dx_ds) + np.square(dy_ds), 3 / 2)
 
         return numerator / denominator
+
+    def evaluate_spline_normal(self, t: np.typing.ArrayLike) -> np.ndarray:
+        """Evaluate a rotated normal at a given spline coordinate."""
+        return self._evaluate_spline(
+            t,
+            (2,),
+            self.evaluate_element_normal,
+        )
 
     def evaluate_spline_point(self, t: np.typing.ArrayLike) -> np.ndarray:
         """Evaluate a point at a given spline coordinate."""
