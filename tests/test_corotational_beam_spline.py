@@ -12,6 +12,7 @@ from tmm_kit.beam_splines import (
     create_cbs_elements_and_nodes,
     pinned_ends,
     pinned_loop,
+    real_points_mask,
     refine_polyline,
 )
 
@@ -56,6 +57,7 @@ def set_up_solver(
     return solver, support_t
 
 
+# --- POLYLINE HELPERS ---
 def test_angle_misalignment():
     angle_diffs = angle_misalignment(SIMPLE_POLYLINE)
 
@@ -65,6 +67,28 @@ def test_angle_misalignment():
     )
 
 
+def test_real_points_mask():
+    np.testing.assert_array_equal(
+        real_points_mask(real_points_n=4, dummy_points_per_segment=2),
+        [True, False, False, True, False, False, True, False, False, True],
+    )
+
+
+def test_real_points_mask_without_dummy_points():
+    np.testing.assert_array_equal(
+        real_points_mask(real_points_n=4, dummy_points_per_segment=0),
+        [True, True, True, True],
+    )
+
+
+def test_real_points_mask_with_different_dummy_points_per_segment():
+    np.testing.assert_array_equal(
+        real_points_mask(real_points_n=4, dummy_points_per_segment=[0, 2, 1]),
+        [True, True, False, False, True, False, True],
+    )
+
+
+# --- FACTORY ---
 def test_factory_support_t():
     _, support_t = set_up_solver(SIMPLE_POLYLINE)
 
@@ -74,6 +98,7 @@ def test_factory_support_t():
     )
 
 
+# --- EVALUATION ---
 def test_evaluate_at_polyline():
     solver, support_t = set_up_solver(SIMPLE_POLYLINE)
     spline = CorotationalBeamSpline(solver.solve(), support_t, SIMPLE_POLYLINE)

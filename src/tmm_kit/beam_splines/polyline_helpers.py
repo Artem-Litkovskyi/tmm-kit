@@ -6,7 +6,7 @@ from tmm_kit.beam_splines import CorotationalBeamSpline
 
 
 def angle_misalignment(polyline: Sequence[Sequence[float]] | np.ndarray):
-    """Get angle misalignment in radians for every array point.
+    """Calculate angle misalignment in radians for every array point.
 
     Notes
     -----
@@ -27,7 +27,7 @@ def angle_misalignment(polyline: Sequence[Sequence[float]] | np.ndarray):
 
 def refine_polyline(
     spline: CorotationalBeamSpline,
-    new_points_per_segment: int | Sequence[int] | np.ndarray = 0,
+    dummy_points_per_segment: int | Sequence[int] | np.ndarray = 0,
 ) -> np.ndarray:
     """Create a denser polyline whose added points lie on the spline.
 
@@ -35,48 +35,81 @@ def refine_polyline(
     ----------
     spline
         Corotational beam spline, the polyline of which needs to be refined.
-    new_points_per_segment
+    dummy_points_per_segment
         Number of points inserted into each polyline segment:
         a scalar applies the same number to every segment;
         an array specifies a number for each segment.
     """
-    segments_n = len(spline.polyline) - 1
+    element_lengths = spline.element_lengths
 
-    # Process added points number
-    dummy_numbers_arr = np.asarray(new_points_per_segment, dtype=int)
+    real_points_n = len(spline.polyline)
+    segments_n = real_points_n - 1
+
+    dummy_numbers_arr = np.asarray(dummy_points_per_segment, dtype=int)
+    if dummy_numbers_arr.size == 1:
+        dummy_numbers_arr = np.repeat(dummy_numbers_arr.item(), segments_n)
+
+    real_mask = real_points_mask(real_points_n, dummy_numbers_arr)
+    real_indices = np.flatnonzero(real_mask)
+
+    new_polyline = np.zeros(
+        (real_mask.size, spline.polyline.shape[1]), dtype=np.float64
+    )
+    new_polyline[real_mask] = spline.polyline
+
+    for i, dummy_n in enumerate(dummy_numbers_arr):
+        if dummy_n == 0:
+            continue
+
+        s = np.linspace(0.0, element_lengths[i], dummy_n + 2)[1:-1]
+        dummy_indices = np.arange(
+            real_indices[i] + 1,
+            real_indices[i + 1],
+        )
+
+        new_polyline[dummy_indices] = spline.evaluate_element_point(i, s)
+
+    return new_polyline
+
+
+def real_points_mask(
+    real_points_n: int,
+    dummy_points_per_segment: int | Sequence[int] | np.ndarray,
+) -> np.ndarray:
+    """Create a boolean mask for selecting real points in a refined polyline.
+
+    Parameters
+    ----------
+    real_points_n
+        Number of real points in the polyline.
+    dummy_points_per_segment
+        Number of dummy points inserted into each segment:
+        a scalar means that every segment has the same number;
+        an array specifies a number for each segment.
+    """
+    if real_points_n < 2:
+        raise ValueError("The number of real points must be at least 2.")
+
+    segments_n = real_points_n - 1
+
+    dummy_numbers_arr = np.asarray(dummy_points_per_segment, dtype=int)
     if dummy_numbers_arr.size == 1:
         dummy_numbers_arr = np.repeat(dummy_numbers_arr.item(), segments_n)
     elif dummy_numbers_arr.size != segments_n:
         raise ValueError(
-            f"Length of new_points_per_segment ({dummy_numbers_arr.size}) "
+            f"Length of dummy_points_per_segment ({dummy_numbers_arr.size}) "
             f"must match the number of segments ({segments_n})."
         )
 
-    # Instantiate a new polyline
-    dummy_nodes_n = sum(dummy_numbers_arr)
-    new_points_n = len(spline.polyline) + dummy_nodes_n
-    new_polyline = np.zeros(
-        (new_points_n, spline.polyline.shape[1]), dtype=np.float64
+    if np.any(dummy_numbers_arr < 0):
+        raise ValueError("The number of dummy points must be non-negative.")
+
+    mask = np.concatenate(
+        [
+            np.concatenate(([True], np.zeros(dummy_n, dtype=bool)))
+            for dummy_n in dummy_numbers_arr
+        ]
+        + [np.array([True])]
     )
 
-    new_point_i = 0
-    for i, supported_point in enumerate(spline.polyline):
-        # Insert a supported point
-        new_polyline[new_point_i] = supported_point
-        new_point_i += 1
-
-        if new_point_i == new_points_n:
-            break
-
-        # Insert dummy points
-        dummy_n = dummy_numbers_arr[i]
-
-        el_l = spline.tmm_result.elements[i].length
-        s = np.linspace(0, el_l, dummy_n + 2)[1:-1]
-        new_polyline[new_point_i : new_point_i + dummy_n] = (
-            spline.evaluate_element_point(i, s)
-        )
-
-        new_point_i += dummy_n
-
-    return new_polyline
+    return mask
