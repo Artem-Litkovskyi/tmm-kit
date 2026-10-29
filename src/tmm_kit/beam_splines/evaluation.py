@@ -72,22 +72,32 @@ class CorotationalBeamSpline(BeamSpline):
         Coordinates of the array points.
     """
 
-    polyline: Sequence[Sequence[float]] | np.ndarray
+    polyline: np.ndarray
     _tangents: np.ndarray = field(init=False, repr=False)
     _normals: np.ndarray = field(init=False, repr=False)
 
-    def __post_init__(self) -> None:
-        """Precompute geometry shared by element and global evaluation."""
-        self.polyline = np.asarray(self.polyline, dtype=np.float64)
-        if self.polyline.ndim != 2 or self.polyline.shape[1] != 2:
+    def __init__(
+        self,
+        tmm_result: TMMResult,
+        support_t: Sequence[float] | np.ndarray,
+        polyline: Sequence[Sequence[float]] | np.ndarray,
+    ) -> None:
+        super().__init__(tmm_result, support_t)
+
+        polyline_arr = np.asarray(polyline, dtype=np.float64)
+        if polyline_arr.ndim != 2 or polyline_arr.shape[1] != 2:
             raise ValueError("The array points must be 2D vectors")
-        if self.polyline.shape[0] < 2:
+        if polyline_arr.shape[0] < 2:
             raise ValueError("The number of array points must be greater or equal to 2")
 
-        element_v = np.diff(self.polyline, axis=0)
+        self.polyline = polyline_arr
+
+        element_v = np.diff(polyline_arr, axis=0)
         element_l = np.linalg.norm(element_v, axis=1)
         self._tangents = element_v / element_l[:, None]
-        self._normals = np.column_stack((-self._tangents[:, 1], self._tangents[:, 0]))
+        self._normals = np.column_stack(
+            (-self._tangents[:, 1], self._tangents[:, 0])
+        )
 
     def evaluate_element_point(
         self, element_i: int, s: np.typing.ArrayLike
@@ -147,57 +157,3 @@ class CorotationalBeamSpline(BeamSpline):
             (),
             self.evaluate_element_curvature,
         )
-
-    def polyline_for_dummies(
-        self,
-        dummy_nodes_per_element: int | Sequence[int] | np.ndarray = 0,
-    ) -> np.ndarray:
-        """Return a polyline prepared for inserting dummy nodes.
-
-        Parameters
-        ----------
-        dummy_nodes_per_element
-            Number of dummy nodes inserted into each element:
-            a scalar applies the same number to every element;
-            an array specifies a number for each element.
-        """
-        elements_n = len(self.tmm_result.elements)
-
-        # Process dummy nodes number
-        dummy_numbers_arr = np.asarray(dummy_nodes_per_element, dtype=int)
-        if dummy_numbers_arr.size == 1:
-            dummy_numbers_arr = np.repeat(dummy_numbers_arr.item(), elements_n)
-        elif dummy_numbers_arr.size != elements_n:
-            raise ValueError(
-                f"Length of dummy_nodes_per_element ({dummy_numbers_arr.size}) "
-                f"must match the number of elements ({elements_n})."
-            )
-
-        # Instantiate a new polyline
-        dummy_nodes_n = sum(dummy_numbers_arr)
-        new_points_n = len(self.polyline) + dummy_nodes_n
-        new_polyline = np.zeros(
-            (new_points_n, self.polyline.shape[1]), dtype=np.float64
-        )
-
-        new_point_i = 0
-        for i, real_point in enumerate(self.polyline):
-            # Insert a real point
-            new_polyline[new_point_i] = real_point
-            new_point_i += 1
-
-            if new_point_i == new_points_n:
-                break
-
-            # Insert dummy points
-            dummy_n = dummy_numbers_arr[i]
-
-            el_l = self.tmm_result.elements[i].length
-            s = np.linspace(0, el_l, dummy_n + 2)[1:-1]
-            new_polyline[new_point_i : new_point_i + dummy_n] = (
-                self.evaluate_element_point(i, s)
-            )
-
-            new_point_i += dummy_n
-
-        return new_polyline
