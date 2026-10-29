@@ -21,6 +21,14 @@ class BeamSpline:
     tmm_result: TMMResult
     support_t: Sequence[float] | np.ndarray
 
+    @property
+    def element_lengths(self) -> np.ndarray:
+        """Get element lengths array."""
+        return np.array(
+            [element.length for element in self.tmm_result.elements],
+            dtype=np.float64,
+        )
+
     def evaluate_element_state(
         self, element_i: int, s: np.typing.ArrayLike
     ) -> np.ndarray:
@@ -93,8 +101,7 @@ class CorotationalBeamSpline(BeamSpline):
         self.polyline = polyline_arr
 
         element_v = np.diff(polyline_arr, axis=0)
-        element_l = np.linalg.norm(element_v, axis=1)
-        self._tangents = element_v / element_l[:, None]
+        self._tangents = element_v / self.element_lengths[:, None]
         self._normals = np.column_stack(
             (-self._tangents[:, 1], self._tangents[:, 0])
         )

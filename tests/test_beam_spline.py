@@ -52,6 +52,16 @@ def test_tmm_solver_beam_edge_states():
     )
 
 
+def test_beam_spline_element_lengths():
+    result = SOLVER.solve()
+    spline = BeamSpline(result, SUPPORT_T)
+
+    np.testing.assert_allclose(
+        spline.element_lengths,
+        np.diff(SUPPORT_T),
+    )
+
+
 def test_beam_spline_evaluate_element():
     result = SOLVER.solve()
     spline = BeamSpline(result, SUPPORT_T)
