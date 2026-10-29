@@ -7,6 +7,8 @@ You can read the docstrings in the source code for more details.
 
 ## Simple Beam Spline
 
+### Interpolation
+
 Elements, nodes and boundary conditions are instantiated either by factory functions:
 
 ```python
@@ -95,6 +97,43 @@ spline_states = spline.evaluate_spline_state(
 )
 ```
 
+### Approximation / Smoothing
+
+Another node and boundary conditions presets are used:
+
+```python
+import numpy as np
+
+import tmm_kit.beam_splines as bs
+
+# Data points are unevenly spaced
+x = [2, 4, 5]
+y = [-1, 4, 2]
+
+# Use adaptive stiffness for step-independent smoothing
+stiffness = bs.adaptive_stiffness(
+    element_length=bs.centered_element_length(np.diff(x)),
+    bandwidth=1,
+)
+
+# BeamPinnedSupport switched to BeamElasticSupport
+elements, nodes = bs.create_beam_elements_and_nodes(
+    support_t=x,
+    element_class=bs.BeamElement,
+    node_class=bs.BeamElasticSupport,
+    node_data={
+      "displacement": y[1:-1],
+      "stiffness": stiffness[1:-1]
+    },
+)
+
+# pinned_ends preset switched to elastic_ends
+bcs = bs.elastic_ends(
+    x[0], x[-1],
+    stiffness[0], stiffness[-1],
+)
+```
+
 ## Corotational Beam Spline
 
 Corotational beam spline uses the same core:
@@ -139,13 +178,15 @@ points = spline.evaluate_spline_point(eval_t)
 curvatures = spline.evaluate_spline_curvature(eval_t)
 ```
 
-The iterative CBS is also supported (see `docs/beam_splines/corotational_beam_spline.md` for more details),
-but will be improved in the future:
+The iterative CBS polyline refinement is also supported (see `docs/beam_splines/corotational_beam_spline.md`
+for more details):
 
 ```python
+import tmm_kit.beam_splines as bs
+from tmm_kit import TMMSolver
+
 # Four circle points. The fifth closes the loop
 circle_polyline = [[-2, 1], [2, 1], [2, -1], [-2, -1], [-2, 1]]
-
 
 def set_up_solver(polyline, dummy_nodes_per_element):
     elements, nodes, support_t, angle_diffs = bs.create_cbs_elements_and_nodes(
@@ -155,7 +196,7 @@ def set_up_solver(polyline, dummy_nodes_per_element):
         dummy_nodes_per_element=dummy_nodes_per_element,
     )
 
-    # Note the special loop boundary conditions preset
+    # Note the special loop boundary conditions that align the end directions
     bcs = bs.pinned_loop(0, angle_diffs[0])
 
     solver = TMMSolver(bs.BEAM_STATE_SIZE, elements, nodes, bcs)
@@ -167,10 +208,10 @@ def set_up_solver(polyline, dummy_nodes_per_element):
 solver, support_t = set_up_solver(circle_polyline, 0)
 spline = bs.CorotationalBeamSpline(solver.solve(), support_t, circle_polyline)
 
-# Create a new polyline with 1 dummy node inserted per element
-new_polyline = spline.polyline_for_dummies(1)
+# Create a new polyline with 1 dummy node inserted per segment
+refined_polyline = bs.refine_polyline(spline, 1)
 
 # Set up the second iteration
-solver, support_t = set_up_solver(new_polyline, 1)
-spline = bs.CorotationalBeamSpline(solver.solve(), support_t, new_polyline)
+solver, support_t = set_up_solver(refined_polyline, 1)
+spline = bs.CorotationalBeamSpline(solver.solve(), support_t, refined_polyline)
 ```

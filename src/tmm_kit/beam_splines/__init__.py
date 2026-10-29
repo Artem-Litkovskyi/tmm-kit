@@ -34,11 +34,14 @@ from tmm_kit.beam_splines.nodes import (
     BeamPinnedSupport,
     BeamSplineNode,
 )
-from tmm_kit.beam_splines.utils import (
-    adaptive_stiffness,
+from tmm_kit.beam_splines.polyline_helpers import (
+    refine_polyline,
     angle_misalignment,
-    centered_element_length,
+)
+from tmm_kit.beam_splines.smoothing_helpers import (
+    adaptive_stiffness,
     smoothing_spline_response,
+    centered_element_length,
 )
 
 __all__ = [
@@ -72,5 +75,6 @@ __all__ = [
     "free_ends",
     "pinned_ends",
     "pinned_loop",
+    "refine_polyline",
     "smoothing_spline_response",
 ]

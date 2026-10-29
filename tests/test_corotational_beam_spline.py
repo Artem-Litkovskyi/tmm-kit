@@ -12,6 +12,7 @@ from tmm_kit.beam_splines import (
     create_cbs_elements_and_nodes,
     pinned_ends,
     pinned_loop,
+    refine_polyline,
 )
 
 # Polylines
@@ -108,10 +109,10 @@ def test_approximate_circle_one_dummy_node_improves_accuracy():
     radius_error1 = np.max(abs(radius - DESIRED_RADIUS))
 
     dummy_nodes_per_element = 1
-    new_polyline = spline.polyline_for_dummies(dummy_nodes_per_element)
+    refined_polyline = refine_polyline(spline, dummy_nodes_per_element)
 
-    solver, support_t = set_up_solver(new_polyline, True, dummy_nodes_per_element)
-    spline = CorotationalBeamSpline(solver.solve(), support_t, new_polyline)
+    solver, support_t = set_up_solver(refined_polyline, True, dummy_nodes_per_element)
+    spline = CorotationalBeamSpline(solver.solve(), support_t, refined_polyline)
 
     eval_t = np.linspace(support_t[0], support_t[-1], 256)
 

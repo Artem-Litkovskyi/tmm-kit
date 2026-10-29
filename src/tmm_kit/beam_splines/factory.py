@@ -4,7 +4,7 @@ import numpy as np
 
 from tmm_kit.beam_splines.elements import BeamElement
 from tmm_kit.beam_splines.nodes import BeamDummyNode, BeamSplineNode
-from tmm_kit.beam_splines.utils import angle_misalignment
+from tmm_kit.beam_splines.polyline_helpers import angle_misalignment
 from tmm_kit.tmm.base import TMMElement
 
 
@@ -135,7 +135,7 @@ def create_cbs_elements_and_nodes(
         dummies_per_el_arr = np.repeat(dummies_per_el_arr.item(), real_elements_n)
     elif dummies_per_el_arr.size != real_elements_n:
         raise ValueError(
-            f"Length of dummy_nodes_per_element ({dummies_per_el_arr.size}) "
+            f"Length of new_points_per_element ({dummies_per_el_arr.size}) "
             f"must match the number of elements ({real_elements_n})."
         )
 
