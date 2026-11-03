@@ -3,6 +3,8 @@ from collections.abc import Sequence
 import numpy as np
 
 from tmm_kit.beam_splines import CorotationalBeamSpline
+from tmm_kit.beam_splines.constants import BEAM_DISPLACEMENT
+from tmm_kit.tmm.base import ElementEdge
 
 
 def angle_misalignment(polyline: Sequence[Sequence[float]] | np.ndarray):
@@ -29,7 +31,10 @@ def refine_polyline(
     spline: CorotationalBeamSpline,
     dummy_points_per_segment: int | Sequence[int] | np.ndarray = 0,
 ) -> np.ndarray:
-    """Create a denser polyline whose added points lie on the spline.
+    """Create a refined polyline from the spline.
+
+    Existing polyline points are moved to the corresponding spline points.
+    Added points are evaluated on the spline by evenly spaced local element coordinates.
 
     Parameters
     ----------
@@ -39,6 +44,11 @@ def refine_polyline(
         Number of points inserted into each polyline segment:
         a scalar applies the same number to every segment;
         an array specifies a number for each segment.
+
+    Returns
+    -------
+    numpy.ndarray
+        Refined polyline coordinates, including inserted points.
     """
     element_lengths = spline.element_lengths
 
@@ -55,7 +65,17 @@ def refine_polyline(
     new_polyline = np.zeros(
         (real_mask.size, spline.polyline.shape[1]), dtype=np.float64
     )
-    new_polyline[real_mask] = spline.polyline
+    start_states = spline.tmm_result.get_all_edge_states(ElementEdge.START)
+    end_state = spline.tmm_result.get_edge_state(segments_n - 1, ElementEdge.END)
+    edge_displacements = np.concatenate(
+        (
+            start_states[:, BEAM_DISPLACEMENT],
+            [end_state[BEAM_DISPLACEMENT]],
+        )
+    )
+    new_polyline[real_mask] = spline.polyline + edge_displacements[
+        :, None
+    ] * spline.evaluate_spline_normal(spline.support_t)
 
     for i, dummy_n in enumerate(dummy_numbers_arr):
         if dummy_n == 0:
