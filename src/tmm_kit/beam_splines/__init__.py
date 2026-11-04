@@ -35,7 +35,7 @@ from tmm_kit.beam_splines.nodes import (
     BeamSplineNode,
 )
 from tmm_kit.beam_splines.polyline_helpers import (
-    angle_misalignment,
+    angle_diff,
     real_points_mask,
     refine_polyline,
 )
@@ -63,7 +63,7 @@ __all__ = [
     "BeamSplineNode",
     "CorotationalBeamSpline",
     "adaptive_stiffness",
-    "angle_misalignment",
+    "angle_diff",
     "centered_element_length",
     "clamped_ends",
     "clamped_loop",

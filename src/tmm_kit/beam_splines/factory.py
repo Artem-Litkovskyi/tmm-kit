@@ -4,7 +4,7 @@ import numpy as np
 
 from tmm_kit.beam_splines.elements import BeamElement
 from tmm_kit.beam_splines.nodes import BeamDummyNode, BeamSplineNode
-from tmm_kit.beam_splines.polyline_helpers import angle_misalignment
+from tmm_kit.beam_splines.polyline_helpers import angle_diff
 from tmm_kit.tmm.base import TMMElement
 
 
@@ -152,7 +152,7 @@ def create_cbs_elements_and_nodes(
             'Do not include "angle_misalignment" in node_data: '
             "it's calculated automatically."
         )
-    angle_diffs = angle_misalignment(polyline_arr)
+    angle_diffs = angle_diff(polyline_arr)
 
     # Populate
     elements = []

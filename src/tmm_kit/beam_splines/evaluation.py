@@ -160,7 +160,7 @@ class CorotationalBeamSpline(BeamSpline):
         d2x_ds2 = M_minus_W_M2 * sin_theta + two_theta_M_plus_W_Q * cos_theta
         d2y_ds2 = M_minus_W_M2 * cos_theta - two_theta_M_plus_W_Q * sin_theta
 
-        numerator = d2x_ds2 * dy_ds - d2y_ds2 * dx_ds
+        numerator = dx_ds * d2y_ds2 - dy_ds * d2x_ds2
         denominator = np.pow(np.square(dx_ds) + np.square(dy_ds), 3 / 2)
 
         return numerator / denominator

@@ -8,7 +8,7 @@ from tmm_kit.beam_splines import (
     BeamElement,
     BeamPinnedSupport,
     CorotationalBeamSpline,
-    angle_misalignment,
+    angle_diff,
     create_cbs_elements_and_nodes,
     pinned_ends,
     pinned_loop,
@@ -59,7 +59,7 @@ def set_up_solver(
 
 # --- POLYLINE HELPERS ---
 def test_angle_misalignment():
-    angle_diffs = angle_misalignment(SIMPLE_POLYLINE)
+    angle_diffs = angle_diff(SIMPLE_POLYLINE)
 
     np.testing.assert_allclose(
         angle_diffs,

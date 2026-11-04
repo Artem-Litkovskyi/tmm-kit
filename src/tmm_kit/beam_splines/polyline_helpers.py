@@ -7,12 +7,19 @@ from tmm_kit.beam_splines.constants import BEAM_DISPLACEMENT
 from tmm_kit.tmm.base import ElementEdge
 
 
-def angle_misalignment(polyline: Sequence[Sequence[float]] | np.ndarray):
-    """Calculate angle misalignment in radians for every array point.
+def angle_diff(
+    polyline: Sequence[Sequence[float]] | np.ndarray
+) -> np.ndarray:
+    """Calculate the angle difference between neighbor polyline segments at each point.
+
+    Returns
+    -------
+    An array of angles in radians for each point of the polyline.
 
     Notes
     -----
-    Used as an argument for conjugation equations of corotational beam splines.
+    Used as an "angle_misalignment" argument for
+    conjugation equations of corotational beam splines.
     """
     polyline_arr = np.asarray(polyline, dtype=np.float64)
 
@@ -33,8 +40,8 @@ def refine_polyline(
 ) -> np.ndarray:
     """Create a refined polyline from the spline.
 
-    Existing polyline points are moved to the corresponding spline points.
-    Added points are evaluated on the spline by evenly spaced local element coordinates.
+    Existing polyline points are displaced to the corresponding spline points.
+    Added points are evaluated on the spline at evenly spaced local element coordinates.
 
     Parameters
     ----------
