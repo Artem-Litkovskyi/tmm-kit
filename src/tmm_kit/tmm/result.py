@@ -33,17 +33,23 @@ class TMMResult:
         s
             Local coordinate (coordinates)
             from 0 to self.elements[element_i].length.
+
+        Returns
+        -------
+        states
+            States of shape ``(*s.shape, state_size)``.
         """
-        eval_s_arr = np.atleast_1d(np.asarray(s, dtype=np.float64))
-        states = np.empty((eval_s_arr.size, self.state_size), dtype=np.float64)
+        s_arr = np.asarray(s, dtype=np.float64)
 
-        for i, eval_s in enumerate(eval_s_arr):
-            start_state = self.get_edge_state(element_i, ElementEdge.START)
-            tm_A, tm_b = self.elements[element_i].get_transfer_eq(eval_s)
-            states[i] = tm_A @ start_state + tm_b
+        tm_A, tm_b = self.elements[element_i].get_transfer_eq(s_arr)
+        states = tm_A @ self.get_edge_state(element_i, ElementEdge.START) + tm_b
 
-        if np.isscalar(s):
-            return states[0]
+        expected_shape = (*s_arr.shape, self.state_size)
+        if states.shape != expected_shape:
+            raise ValueError(
+                f"get_transfer_eq of element {element_i} returned states "
+                f"of shape {states.shape} instead of {expected_shape}."
+            )
         return states
 
     def get_edge_state(
@@ -61,23 +67,12 @@ class TMMResult:
             The edge at which the state is retrieved.
             If None, retrieve at both edges.
         """
-        element_indices = np.atleast_1d(np.asarray(element_i, dtype=np.int64))
-        states = self.edge_states.reshape(-1, self.state_size)
+        element_indices = np.asarray(element_i, dtype=np.int64)
+        states = self._states_by_element()
 
         if element_edge is None:
-            state_indices = np.stack(
-                (2 * element_indices, 2 * element_indices + 1),
-                axis=1,
-            ).reshape(-1)
-            return states[state_indices]
-
-        edge_offset = int(element_edge == ElementEdge.END)
-        state_indices = 2 * element_indices + edge_offset
-        selected_states = states[state_indices]
-
-        if np.isscalar(element_i):
-            return selected_states[0]
-        return selected_states
+            return states[element_indices].reshape(-1, self.state_size)
+        return states[element_indices, self._edge_index_offset(element_edge)]
 
     def get_all_edge_states(
         self,
@@ -91,4 +86,13 @@ class TMMResult:
             The edge at which the state is retrieved.
             If None, retrieve at both edges.
         """
-        return self.get_edge_state(range(len(self.elements)), element_edge)
+        if element_edge is None:
+            return self.edge_states.reshape(-1, self.state_size)
+        return self._states_by_element()[:, self._edge_index_offset(element_edge)]
+
+    def _states_by_element(self) -> np.ndarray:
+        return self.edge_states.reshape(len(self.elements), 2, self.state_size)
+
+    @staticmethod
+    def _edge_index_offset(element_edge: ElementEdge) -> int:
+        return int(element_edge == ElementEdge.END)

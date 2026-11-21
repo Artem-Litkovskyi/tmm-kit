@@ -5,6 +5,7 @@ from enum import StrEnum
 from typing import TypeAlias
 
 import numpy as np
+import numpy.typing as npt
 
 
 class ElementEdge(StrEnum):
@@ -41,15 +42,62 @@ class TMMElement(ABC):
     length: float
 
     @abstractmethod
-    def get_transfer_eq(self, s: float) -> tuple[np.ndarray, np.ndarray]:
+    def get_transfer_eq(self, s: npt.ArrayLike) -> tuple[np.ndarray, np.ndarray]:
         """Return the transfer matrix K and right vector f.
+
+        The state at the local coordinate s is ``K @ start_state + f``.
 
         Parameters
         ----------
         s
-            Local coordinate from 0 to self.length.
+            Local coordinate (coordinates) from 0 to self.length.
+
+        Returns
+        -------
+        K
+            Transfer matrices of shape ``(*s.shape, S, S)``,
+            where S is the state size. A scalar s gives ``(S, S)``.
+        f
+            Right vectors of shape ``(*s.shape, S)``.
+            A scalar s gives ``(S,)``.
+
+        Notes
+        -----
+        Use `stack_transfer_eq` to build K and f from entries
+        that are arrays of the same shape as s.
         """
         pass
+
+
+def stack_transfer_eq(
+    K: Sequence[Sequence[npt.ArrayLike]],
+    f: Sequence[npt.ArrayLike],
+) -> tuple[np.ndarray, np.ndarray]:
+    """Stack transfer equation entries into arrays of matrices and vectors.
+
+    Parameters
+    ----------
+    K
+        Nested ``S x S`` matrix whose entries are arrays of the same shape as s.
+    f
+        Vector of S entries that are arrays of the same shape as s.
+
+    Returns
+    -------
+    K
+        Transfer matrices of shape ``(*s.shape, S, S)``.
+    f
+        Right vectors of shape ``(*s.shape, S)``.
+    """
+    K_arr = np.asarray(K, dtype=np.float64)
+    f_arr = np.asarray(f, dtype=np.float64)
+
+    # Move the entry axes to the end. Cheaper than np.moveaxis for scalar s,
+    # which matters because the solver calls this once per element.
+    return (
+        K_arr.transpose(*range(2, K_arr.ndim), 0, 1),
+        f_arr.transpose(*range(1, f_arr.ndim), 0),
+    )
 
 
 @dataclass(slots=True)

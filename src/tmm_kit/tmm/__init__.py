@@ -5,6 +5,7 @@ from tmm_kit.tmm.base import (
     TMMNode,
     continuity_equation,
     offset_equation,
+    stack_transfer_eq,
 )
 from tmm_kit.tmm.result import TMMResult
 from tmm_kit.tmm.solver import TMMSolver
@@ -18,4 +19,5 @@ __all__ = [
     "TMMSolver",
     "continuity_equation",
     "offset_equation",
+    "stack_transfer_eq",
 ]

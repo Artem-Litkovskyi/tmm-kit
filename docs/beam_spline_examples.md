@@ -123,16 +123,15 @@ elements, nodes = bs.create_beam_elements_and_nodes(
     support_t=x,
     element_class=bs.BeamElement,
     node_class=bs.BeamElasticSupport,
-    node_data={
-      "displacement": y[1:-1],
-      "stiffness": stiffness[1:-1]
-    },
+    node_data={"displacement": y[1:-1], "stiffness": stiffness[1:-1]},
 )
 
 # pinned_ends preset switched to elastic_ends
 bcs = bs.elastic_ends(
-    x[0], x[-1],
-    stiffness[0], stiffness[-1],
+    x[0],
+    x[-1],
+    stiffness[0],
+    stiffness[-1],
 )
 ```
 
@@ -174,10 +173,12 @@ eval_t = np.linspace(support_t[0], support_t[-1], 128)
 states = spline.evaluate_spline_state(eval_t)
 
 # ...as well as 2D coordinates of spline points...
-points = spline.evaluate_spline_point(eval_t)
+points = spline.evaluate_spline_point(eval_t, states)
 
-# ...or geometric curvatures
-curvatures = spline.evaluate_spline_curvature(eval_t)
+# ...or geometric curvatures. Points, normals and curvatures are calculated
+# from the states. Passing the states precomputed at the same t is optional,
+# but avoids evaluating them again
+curvatures = spline.evaluate_spline_curvature(eval_t, states)
 ```
 
 The iterative CBS polyline refinement is also supported (see `docs/beam_splines/corotational_beam_spline.md`
@@ -189,6 +190,7 @@ from tmm_kit import TMMSolver
 
 # Four circle points. The fifth closes the loop
 circle_polyline = [[-2, 1], [2, 1], [2, -1], [-2, -1], [-2, 1]]
+
 
 def set_up_solver(polyline, dummy_nodes_per_element):
     elements, nodes, support_t, angle_diffs = bs.create_cbs_elements_and_nodes(

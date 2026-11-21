@@ -1,6 +1,7 @@
 import numpy as np
+import pytest
 
-from tmm_kit import ElementEdge, TMMResult, TMMSolver
+from tmm_kit import ElementEdge, TMMEquation, TMMResult, TMMSolver
 from tmm_kit.electrical import (
     ELECTRICAL_STATE_SIZE,
     ElectricalElement,
@@ -124,3 +125,56 @@ def test_tmm_result_get_all_edge_states():
         result.get_all_edge_states(ElementEdge.END),
         DESIRED_EDGE_STATES[1::2],
     )
+
+
+def _solve_single_resistor(boundary_conditions):
+    # A single 2R resistor, so the transfer equations give E_end = E_start - 2 I
+    solver = TMMSolver(
+        ELECTRICAL_STATE_SIZE,
+        [ElectricalElement(1, 2, 0)],
+        [],
+        boundary_conditions,
+    )
+    return solver.solve().get_all_edge_states()
+
+
+def test_tmm_solver_sums_repeated_addends():
+    current_bc = TMMEquation((0, ElementEdge.START, 1, 1.0), 3.0)
+
+    split_states = _solve_single_resistor(
+        [
+            TMMEquation(
+                [(0, ElementEdge.START, 0, 0.5), (0, ElementEdge.START, 0, 0.5)],
+                1.0,
+            ),
+            current_bc,
+        ]
+    )
+    states = _solve_single_resistor(
+        [TMMEquation((0, ElementEdge.START, 0, 1.0), 1.0), current_bc]
+    )
+
+    np.testing.assert_allclose(split_states, states)
+    np.testing.assert_allclose(states, [[1.0, 3.0], [-5.0, 3.0]])
+
+
+def test_tmm_solver_negative_element_index_counts_from_end():
+    current_bc = TMMEquation((0, ElementEdge.START, 1, 1.0), 3.0)
+
+    np.testing.assert_allclose(
+        _solve_single_resistor(
+            [TMMEquation((-1, ElementEdge.END, 0, 1.0), 1.0), current_bc]
+        ),
+        _solve_single_resistor(
+            [TMMEquation((0, ElementEdge.END, 0, 1.0), 1.0), current_bc]
+        ),
+    )
+
+
+def test_tmm_solver_rejects_element_index_out_of_range():
+    current_bc = TMMEquation((0, ElementEdge.START, 1, 1.0), 3.0)
+
+    with pytest.raises(ValueError):
+        _solve_single_resistor(
+            [TMMEquation((1, ElementEdge.START, 0, 1.0), 1.0), current_bc]
+        )

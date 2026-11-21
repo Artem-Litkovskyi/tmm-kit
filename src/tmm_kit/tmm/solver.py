@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 
 import numpy as np
+import numpy.typing as npt
 import scipy.sparse as sp
 import scipy.sparse.linalg as spla
 
@@ -54,27 +55,34 @@ class TMMSolver:
 
     def _assemble_system(self) -> tuple[sp.csr_matrix, np.ndarray]:
         unknowns_n = self._calculate_unknowns_n()
+        elements_n = len(self.elements)
+        transfer_eqs_n = self.state_size * elements_n
 
-        K = sp.lil_matrix((unknowns_n, unknowns_n), dtype=np.float64)
         f = np.zeros(unknowns_n, dtype=np.float64)
 
-        row = 0
-
         # Transfer equations
+        # Block row i holds [-A_i, I] in the block columns (2i, 2i + 1)
+        blocks = np.empty(
+            (elements_n, 2, self.state_size, self.state_size), dtype=np.float64
+        )
+        blocks[:, 1] = np.eye(self.state_size)
+
         for el_i, element in enumerate(self.elements):
             tm_A, tm_b = element.get_transfer_eq(element.length)
 
-            idx_l = self._global_matrix_index_of_state(el_i, ElementEdge.START)
-            idx_r = self._global_matrix_index_of_state(el_i, ElementEdge.END)
+            blocks[el_i, 0] = -tm_A
 
-            K[row : row + self.state_size, idx_l : idx_l + self.state_size] = -tm_A
-            K[row : row + self.state_size, idx_r : idx_r + self.state_size] = np.eye(
-                self.state_size
-            )
-
+            row = self.state_size * el_i
             f[row : row + self.state_size] = tm_b
 
-            row += self.state_size
+        K_transfer = sp.bsr_matrix(
+            (
+                blocks.reshape(-1, self.state_size, self.state_size),
+                np.arange(2 * elements_n),
+                np.arange(0, 2 * elements_n + 1, 2),
+            ),
+            shape=(transfer_eqs_n, unknowns_n),
+        )
 
         eqs = []
 
@@ -85,15 +93,25 @@ class TMMSolver:
         # Boundary condition equations
         eqs.extend(self.bcs)
 
-        # Add equations into the matrix
-        for eq in eqs:
-            for seg_i, seg_side, state_var, k in eq.left_side_addends:
-                idx = self._global_matrix_index_of_var(seg_i, seg_side, state_var)
-                K[row, idx] = k
-            f[row] = eq.right_side
-            row += 1
+        # Add equations into the matrix as (row, column, coefficient) triplets.
+        # Repeated variables in the same equation are summed up.
+        rows, addends = [], []
+        for row, eq in enumerate(eqs):
+            rows.extend([row] * len(eq.left_side_addends))
+            addends.extend(eq.left_side_addends)
+            f[transfer_eqs_n + row] = eq.right_side
 
-        return sp.csr_matrix(K), f
+        element_i, element_edge, state_var_i, k = zip(*addends)
+        cols = self._global_matrix_index_of_var(element_i, element_edge, state_var_i)
+
+        K_eqs = sp.coo_matrix(
+            (k, (rows, cols)), shape=(len(eqs), unknowns_n), dtype=np.float64
+        )
+
+        K = sp.vstack((K_transfer, K_eqs), format="csr")
+        K.eliminate_zeros()
+
+        return K, f
 
     def _calculate_unknowns_n(self):
         return 2 * self.state_size * len(self.elements)
@@ -104,15 +122,20 @@ class TMMSolver:
         bcs_n = len(self.bcs)
         return transfer_eqs_n, conjugation_eqs_n, bcs_n
 
-    def _global_matrix_index_of_state(
-        self, element_i: int, element_edge: ElementEdge
-    ) -> int:
-        """Calculate index in the global matrix for a beginning of a specific state."""
-        edge_offset = int(element_edge == ElementEdge.END)
-        return self.state_size * (2 * element_i + edge_offset)
-
     def _global_matrix_index_of_var(
-        self, element_i: int, element_edge: ElementEdge, state_var_i: int
-    ) -> int:
-        """Calculate index in the global matrix for a specific state variable."""
-        return self._global_matrix_index_of_state(element_i, element_edge) + state_var_i
+        self,
+        element_i: npt.ArrayLike,
+        element_edge: npt.ArrayLike,
+        state_var_i: npt.ArrayLike,
+    ) -> np.ndarray:
+        """Calculate global matrix indices of state variables.
+
+        Negative element indices count from the end, as in Python.
+        """
+        element_i_arr = np.asarray(element_i, dtype=np.int64)
+        element_i_arr = np.where(
+            element_i_arr < 0, element_i_arr + len(self.elements), element_i_arr
+        )
+        edge_offset = np.asarray(element_edge) == ElementEdge.END
+        state_var_i_arr = np.asarray(state_var_i, dtype=np.int64)
+        return self.state_size * (2 * element_i_arr + edge_offset) + state_var_i_arr

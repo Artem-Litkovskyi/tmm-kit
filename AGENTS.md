@@ -75,7 +75,7 @@ def process_coordinates(
     x
         Coordinate (coordinates).
     param
-        Parameter (optional). Changes something. 
+        Parameter (optional). Changes something.
     """
     x_arr = np.asarray(x, dtype=np.float64)
 

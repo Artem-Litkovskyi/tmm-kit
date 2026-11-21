@@ -22,6 +22,11 @@ class BeamSpline:
 
     tmm_result: TMMResult
     support_t: npt.ArrayLike
+    _support_t_arr: np.ndarray = field(init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        """Normalize support_t into a float array."""
+        self._support_t_arr = np.asarray(self.support_t, dtype=np.float64)
 
     @property
     def element_lengths(self) -> np.ndarray:
@@ -31,9 +36,7 @@ class BeamSpline:
             dtype=np.float64,
         )
 
-    def evaluate_element_state(
-        self, element_i: int, s: npt.ArrayLike
-    ) -> np.ndarray:
+    def evaluate_element_state(self, element_i: int, s: npt.ArrayLike) -> np.ndarray:
         """Evaluate a beam state at a given element coordinate."""
         return self.tmm_result.evaluate(element_i, s)
 
@@ -64,19 +67,41 @@ class BeamSpline:
         self,
         t: npt.ArrayLike,
         result_shape: tuple[int, ...],
-        evaluate_element: Callable[[int, np.ndarray], np.ndarray],
+        evaluate_element: Callable[..., np.ndarray],
+        states: np.ndarray | None = None,
     ) -> np.ndarray:
-        """Evaluate an element-wise quantity at spline coordinates."""
+        """Evaluate an element-wise quantity at spline coordinates.
+
+        If states are given, each element group gets its slice of them
+        as the third argument of evaluate_element.
+        """
         eval_ts = np.atleast_1d(np.asarray(t, dtype=np.float64))
         result = np.empty((eval_ts.size, *result_shape), dtype=np.float64)
 
-        element_indices = np.searchsorted(self.support_t, eval_ts, side="right") - 1
-        element_indices = np.clip(element_indices, 0, len(self.support_t) - 2)
+        if states is not None:
+            states = np.atleast_2d(states)
 
-        for element_i in np.unique(element_indices):
-            state_indices = element_indices == element_i
-            s = eval_ts[state_indices] - self.support_t[element_i]
-            result[state_indices] = evaluate_element(int(element_i), s)
+        element_indices = (
+            np.searchsorted(self._support_t_arr, eval_ts, side="right") - 1
+        )
+        element_indices = np.clip(element_indices, 0, self._support_t_arr.size - 2)
+
+        # Group the evaluation points by element
+        order = np.argsort(element_indices, kind="stable")
+        unique_elements, group_starts = np.unique(
+            element_indices[order], return_index=True
+        )
+
+        for element_i, state_indices in zip(
+            unique_elements, np.split(order, group_starts[1:])
+        ):
+            s = eval_ts[state_indices] - self._support_t_arr[element_i]
+            if states is None:
+                result[state_indices] = evaluate_element(int(element_i), s)
+            else:
+                result[state_indices] = evaluate_element(
+                    int(element_i), s, states[state_indices]
+                )
 
         if np.isscalar(t):
             return result[0]
@@ -119,32 +144,58 @@ class CorotationalBeamSpline(BeamSpline):
 
         element_v = np.diff(polyline_arr, axis=0)
         self._tangents = element_v / self.element_lengths[:, None]
-        self._normals = np.column_stack(
-            (-self._tangents[:, 1], self._tangents[:, 0])
-        )
+        self._normals = np.column_stack((-self._tangents[:, 1], self._tangents[:, 0]))
 
     def evaluate_element_normal(
-        self, element_i: int, s: npt.ArrayLike
+        self,
+        element_i: int,
+        s: npt.ArrayLike,
+        states: np.ndarray | None = None,
     ) -> np.ndarray:
-        """Evaluate a rotated normal at a given element coordinate."""
+        """Evaluate a rotated normal at a given element coordinate.
+
+        Parameters
+        ----------
+        element_i
+            Element index.
+        s
+            Local coordinate (coordinates) from 0 to the element length.
+        states
+            Precomputed states at the same coordinates, shape (N, 4).
+            Evaluated if None.
+        """
         s_arr = np.atleast_1d(np.asarray(s, dtype=np.float64))
-        states = self.tmm_result.evaluate(element_i, s_arr)
+        if states is None:
+            states = self.tmm_result.evaluate(element_i, s_arr)
         _, theta, _, _ = states.T
 
         local_x = -np.sin(theta)
         local_y = np.cos(theta)
 
-        return (
-            np.outer(local_x, self._tangents[element_i])
-            + np.outer(local_y, self._normals[element_i])
+        return np.outer(local_x, self._tangents[element_i]) + np.outer(
+            local_y, self._normals[element_i]
         )
 
     def evaluate_element_point(
-        self, element_i: int, s: npt.ArrayLike
+        self,
+        element_i: int,
+        s: npt.ArrayLike,
+        states: np.ndarray | None = None,
     ) -> np.ndarray:
-        """Evaluate a point at a given element coordinate."""
+        """Evaluate a point at a given element coordinate.
+
+        Parameters
+        ----------
+        element_i
+            Element index.
+        s
+            Local coordinate (coordinates) from 0 to the element length.
+        states
+            Optional precomputed states at the same coordinates, shape (N, 4).
+        """
         s_arr = np.atleast_1d(np.asarray(s, dtype=np.float64))
-        states = self.tmm_result.evaluate(element_i, s_arr)
+        if states is None:
+            states = self.tmm_result.evaluate(element_i, s_arr)
         W, theta, _, _ = states.T
 
         local_x = s_arr - W * np.sin(theta)
@@ -157,11 +208,25 @@ class CorotationalBeamSpline(BeamSpline):
         )
 
     def evaluate_element_curvature(
-        self, element_i: int, s: npt.ArrayLike
+        self,
+        element_i: int,
+        s: npt.ArrayLike,
+        states: np.ndarray | None = None,
     ) -> np.ndarray:
-        """Evaluate a curvature at a given element coordinate."""
+        """Evaluate a curvature at a given element coordinate.
+
+        Parameters
+        ----------
+        element_i
+            Element index.
+        s
+            Local coordinate (coordinates) from 0 to the element length.
+        states
+            Optional precomputed states at the same coordinates, shape (N, 4).
+        """
         s_arr = np.atleast_1d(np.asarray(s, dtype=np.float64))
-        states = self.tmm_result.evaluate(element_i, s_arr)
+        if states is None:
+            states = self.tmm_result.evaluate(element_i, s_arr)
         W, theta, M, Q = states.T
 
         sin_theta = np.sin(theta)
@@ -182,26 +247,65 @@ class CorotationalBeamSpline(BeamSpline):
 
         return numerator / denominator
 
-    def evaluate_spline_normal(self, t: npt.ArrayLike) -> np.ndarray:
-        """Evaluate a rotated normal at a given spline coordinate."""
+    def evaluate_spline_normal(
+        self,
+        t: npt.ArrayLike,
+        states: np.ndarray | None = None,
+    ) -> np.ndarray:
+        """Evaluate a rotated normal at a given spline coordinate.
+
+        Parameters
+        ----------
+        t
+            Spline coordinate (coordinates).
+        states
+            Optional precomputed states at the same coordinates, shape (N, 4).
+        """
         return self._evaluate_spline(
             t,
             (2,),
             self.evaluate_element_normal,
+            states,
         )
 
-    def evaluate_spline_point(self, t: npt.ArrayLike) -> np.ndarray:
-        """Evaluate a point at a given spline coordinate."""
+    def evaluate_spline_point(
+        self,
+        t: npt.ArrayLike,
+        states: np.ndarray | None = None,
+    ) -> np.ndarray:
+        """Evaluate a point at a given spline coordinate.
+
+        Parameters
+        ----------
+        t
+            Spline coordinate (coordinates).
+        states
+            Optional precomputed states at the same coordinates, shape (N, 4).
+        """
         return self._evaluate_spline(
             t,
             (2,),
             self.evaluate_element_point,
+            states,
         )
 
-    def evaluate_spline_curvature(self, t: npt.ArrayLike) -> np.ndarray:
-        """Evaluate a curvature at a given spline coordinate."""
+    def evaluate_spline_curvature(
+        self,
+        t: npt.ArrayLike,
+        states: np.ndarray | None = None,
+    ) -> np.ndarray:
+        """Evaluate a curvature at a given spline coordinate.
+
+        Parameters
+        ----------
+        t
+            Spline coordinate (coordinates).
+        states
+            Optional precomputed states at the same coordinates, shape (N, 4).
+        """
         return self._evaluate_spline(
             t,
             (),
             self.evaluate_element_curvature,
+            states,
         )

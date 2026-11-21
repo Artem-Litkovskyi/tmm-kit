@@ -7,6 +7,7 @@ from tmm_kit.tmm import (
     TMMSolver,
     continuity_equation,
     offset_equation,
+    stack_transfer_eq,
 )
 
 __all__ = [
@@ -18,4 +19,5 @@ __all__ = [
     "TMMSolver",
     "continuity_equation",
     "offset_equation",
+    "stack_transfer_eq",
 ]

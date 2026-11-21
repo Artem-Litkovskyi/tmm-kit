@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 
 import numpy as np
+import numpy.typing as npt
 
-from tmm_kit.tmm.base import TMMElement
+from tmm_kit.tmm.base import TMMElement, stack_transfer_eq
 
 
 @dataclass(slots=True)
@@ -12,22 +13,19 @@ class ElectricalElement(TMMElement):
     resistance: float
     voltage: float
 
-    def get_transfer_eq(self, s: float) -> tuple[np.ndarray, np.ndarray]:
+    def get_transfer_eq(self, s: npt.ArrayLike) -> tuple[np.ndarray, np.ndarray]:
         """Return the transfer matrix K and right vector f."""
-        K = np.array(
-            [
-                [1.0, -self.resistance],
-                [0.0, 1.0],
-            ],
-            dtype=np.float64,
-        )
+        s_arr = np.asarray(s, dtype=np.float64)
+        one, zero = np.ones_like(s_arr), np.zeros_like(s_arr)
 
-        f = np.array(
-            [
-                self.voltage,
-                0.0,
-            ],
-            dtype=np.float64,
-        )
+        K = [
+            [one, -self.resistance * one],
+            [zero, one],
+        ]
 
-        return K, f
+        f = [
+            self.voltage * one,
+            zero,
+        ]
+
+        return stack_transfer_eq(K, f)

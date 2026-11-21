@@ -149,3 +149,35 @@ def test_approximate_circle_one_dummy_node_improves_accuracy():
         radius_error2,
         radius_error1,
     )
+
+
+def test_precomputed_states_give_same_results():
+    solver, support_t = set_up_solver(CIRCLE_POLYLINE, loop=True)
+    spline = CorotationalBeamSpline(solver.solve(), support_t, CIRCLE_POLYLINE)
+
+    states = spline.evaluate_spline_state(CIRCLE_EVAL_T)
+
+    for evaluate in (
+        spline.evaluate_spline_point,
+        spline.evaluate_spline_normal,
+        spline.evaluate_spline_curvature,
+    ):
+        np.testing.assert_allclose(
+            evaluate(CIRCLE_EVAL_T, states), evaluate(CIRCLE_EVAL_T)
+        )
+
+        # Scalar t gives a single state of shape (4,)
+        t = CIRCLE_EVAL_T[10]
+        np.testing.assert_allclose(
+            evaluate(t, spline.evaluate_spline_state(t)), evaluate(t)
+        )
+
+    s = np.linspace(0, spline.element_lengths[1], 5)
+    element_states = spline.evaluate_element_state(1, s)
+
+    for evaluate in (
+        spline.evaluate_element_point,
+        spline.evaluate_element_normal,
+        spline.evaluate_element_curvature,
+    ):
+        np.testing.assert_allclose(evaluate(1, s, element_states), evaluate(1, s))
