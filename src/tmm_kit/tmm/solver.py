@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+
 import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.linalg as spla
@@ -12,9 +14,9 @@ class TMMSolver:
     def __init__(
         self,
         state_size: int,
-        elements: list[TMMElement],
-        nodes: list[TMMNode],
-        boundary_conditions: list[TMMEquation],
+        elements: Sequence[TMMElement],
+        nodes: Sequence[TMMNode],
+        boundary_conditions: Sequence[TMMEquation],
     ):
         if state_size < 1:
             raise ValueError("state_size must be at least 1.")

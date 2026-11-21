@@ -1,21 +1,21 @@
-# Beam Spline System via Transition Matrix Method
+# Beam Spline System via Transfer Matrix Method
 
 ## Overview
 
 **Beam spline** is a physics-based spline that is modeled as a beam, constrained by supports at its node points.
 
-This document outlines a mathematical framework for solving Euler-Bernoulli beams using the **Transition Matrix Method (TMM)**. 
+This document outlines a mathematical framework for solving Euler-Bernoulli beams using the **Transfer Matrix Method (TMM)**. 
 
-By preserving the state vectors at both edges of every segment (avoiding simplifications like the Three Moments Equation), this approach allows for the easy introduction of discontinuities, such as internal hinges or stepped displacements, later on.
+By preserving the state vectors at both edges of every segment (avoiding simplifications like the Three Moments Equation), this approach allows for the easy introduction of discontinuities, such as stepped displacements, later on.
 
 ## State Vector
 The beam state at any cross-section is defined by the vector $\hat{Y}$:
 $$ \hat{Y} = \begin{Bmatrix} W \\ \theta \\ M \\ Q \end{Bmatrix} $$
 Where:
 *   **$W$**: Displacement (directed along the y-axis)
-*   **$\theta$**: Slope (rotation)
-*   **$M$**: Bending moment
-*   **$Q$**: Shear force
+*   **$\theta = \frac{dW}{dt}$**: Slope
+*   **$M = \frac{d\theta}{dt}$**: Bending moment
+*   **$Q = \frac{dM}{dt}$**: Shear force
 
 ## Problem Geometry
 *   The beam is divided into $N$ segments with edges placed at $N+1$ points at coordinates $t_i$.
@@ -25,8 +25,8 @@ Where:
 
 ---
 
-## 1. Standard Transition Equations (4N equations)
-For each segment, the state at the end is related to the state at the start via the transition matrix $A(L_i)$:
+## 1. Standard Transfer Equations (4N equations)
+For each segment, the state at the end is related to the state at the start via the transfer matrix $A(L_i)$:
 
 $$ \hat{Y}_e^i = A(L_i) \cdot \hat{Y}_0^i $$
 
@@ -42,7 +42,7 @@ $$ A(t) = \begin{bmatrix}
 
 where $s \in [0; L_i]$ is a local coordinate.
 
-After the beam is solved and all $\hat{Y}_0^i$ are known, the same transition matrix can be used to **evaluate** the beam state $W$ in any point.
+After the beam is solved and all $\hat{Y}_0^i$ are known, the same transfer matrix can be used to **evaluate** the beam state $W$ in any point.
 
 ---
 
@@ -81,7 +81,7 @@ The final linear system takes the form of $K \cdot X = F$, where $K$ is an $8N \
 
 | Equation Type         | Count    |
 |:----------------------|:---------|
-| Transition Equations  | $4N$     |
+| Transfer Equations    | $4N$     |
 | Conjugation Equations | $4N - 4$ |
 | Boundary Conditions   | $4$      |
 | **Total Equations**   | **$8N$** |

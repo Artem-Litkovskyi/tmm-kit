@@ -1,15 +1,14 @@
 from collections.abc import Sequence
 
 import numpy as np
+import numpy.typing as npt
 
 from tmm_kit.beam_splines import CorotationalBeamSpline
 from tmm_kit.beam_splines.constants import BEAM_DISPLACEMENT
 from tmm_kit.tmm.base import ElementEdge
 
 
-def angle_diff(
-    polyline: Sequence[Sequence[float]] | np.ndarray
-) -> np.ndarray:
+def angle_diff(polyline: npt.ArrayLike) -> np.ndarray:
     """Calculate the angle difference between neighbor polyline segments at each point.
 
     Returns

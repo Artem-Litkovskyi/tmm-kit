@@ -10,13 +10,13 @@ with springs (elastic supports).
 It uses standard beam transfer equations with special conjugation equations that take into account the spring force:
 
 1.  **Displacement is continuous:**
-    $$ w_0^{i+1} - w_e^{i} = 0 $$
+    $$ W_0^{i+1} - W_e^{i} = 0 $$
 2.  **Slope is continuous:**
     $$ \theta_0^{i+1} - \theta_e^i = 0 $$
 3.  **Moment is continuous:**
     $$ M_0^{i+1} - M_e^i = 0 $$
 4.  **Force changes by the elastic force value:**
-    $$ Q_0^{i+1} - Q_e^{i} = D_i (\Pi_{i+1} - w_0^{i+1}) $$
+    $$ Q_0^{i+1} - Q_e^{i} = D_i (\Pi_{i+1} - W_0^{i+1}) $$
 
 If the smoothed data points are not equally spaced (i.e. $L_i \neq L_j$), an adaptive support stiffness should be
 used:
@@ -33,15 +33,15 @@ The beam is not supported by discrete points, but rather is placed on a continuo
 It's based on a beam model proposed by Stephen Timoshenko for rails deformation analysis.
 The model is described by these equations:
 
-$$ \frac{dw}{dt} = \theta(t); \quad \frac{d\theta}{dt} = M(t); \quad \frac{dM}{dt} = Q(t); \quad \frac{dQ}{dt} = -\alpha w(t) + q(t);$$
+$$ \frac{dW}{dt} = \theta(t); \quad \frac{d\theta}{dt} = M(t); \quad \frac{dM}{dt} = Q(t); \quad \frac{dQ}{dt} = -\alpha W(t) + q(t);$$
 
 For the smoothing application, we will consider the external load $q(t)$ to be caused by the foundation $Y(t)$ resistance:
 
-$$ \frac{dQ}{dt} = \alpha (Y(t) - w(t)) = \frac{Y(t) - w(t)}{g^4}$$
+$$ \frac{dQ}{dt} = \alpha (Y(t) - W(t)) = \frac{Y(t) - W(t)}{g^4}$$
 
 Then previous equations can be combined into one differential equation:
 
-$$ \frac{d^4w}{dt^4} + \frac{w(t)}{g^4} = \frac{Y(t)}{g^4}$$
+$$ \frac{d^4W}{dt^4} + \frac{W(t)}{g^4} = \frac{Y(t)}{g^4}$$
 
 In order to smooth data points $(t_i; \Pi_i)$, let the $Y(t)$ be a piecewise linear function.
 In local coordinates ($l \in [0; L_i]$) it's formula is as follows:
@@ -60,8 +60,8 @@ $$Y(t) = \Delta \cos{\frac{t}{\xi}}$$
 
 If we substitute it into the differential equation of the beam model, we get this displacement:
 
-$$w(t) = \Delta \frac{\xi^4}{g^4 + \xi^4} \cos{\frac{t}{\xi}}$$
+$$W(t) = \Delta \frac{\xi^4}{g^4 + \xi^4} \cos{\frac{t}{\xi}}$$
 
 Now we can find a ratio that describes the beam response to the signal of a certain frequency:
 
-$$\epsilon(\xi; g) = \frac{w(t)}{Y(t)} = \frac{\xi^4}{g^4 + \xi^4}$$
+$$\varepsilon(\xi; g) = \frac{W(t)}{Y(t)} = \frac{\xi^4}{g^4 + \xi^4}$$

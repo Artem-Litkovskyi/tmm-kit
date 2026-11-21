@@ -5,7 +5,7 @@ import numpy as np
 
 def adaptive_stiffness(
     element_length: float | np.ndarray,
-    bandwidth: float,
+    bandwidth: float | np.ndarray,
 ):
     """Calculate adaptive beam support stiffness for step-independent smoothing.
 

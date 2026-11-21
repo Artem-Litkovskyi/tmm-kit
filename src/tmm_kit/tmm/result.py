@@ -1,6 +1,8 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 import numpy as np
+import numpy.typing as npt
 
 from .base import ElementEdge, TMMElement
 
@@ -9,7 +11,7 @@ from .base import ElementEdge, TMMElement
 class TMMResult:
     """Immutable result container holding state vectors and evaluation logic."""
 
-    elements: list[TMMElement]
+    elements: Sequence[TMMElement]
     edge_states: np.ndarray
 
     def __post_init__(self):
@@ -20,7 +22,7 @@ class TMMResult:
     def evaluate(
         self,
         element_i: int,
-        s: np.typing.ArrayLike,
+        s: npt.ArrayLike,
     ) -> np.ndarray:
         """Evaluate an element state at a certain local coordinate.
 
@@ -46,7 +48,7 @@ class TMMResult:
 
     def get_edge_state(
         self,
-        element_i: np.typing.ArrayLike,
+        element_i: npt.ArrayLike,
         element_edge: ElementEdge | None = None,
     ) -> np.ndarray:
         """Get state vectors from the array of all element states.

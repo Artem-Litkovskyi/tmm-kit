@@ -20,7 +20,7 @@ This document outlines the code style and architectural patterns for math projec
 * **Scalars:** Use Python's built-in `float` for scalar type hints, not `np.float64`.
 * **Arrays:** Allow flexible sequence inputs `Sequence[float] | np.ndarray`. Normalize them internally using
   `np.asarray(points, dtype=np.float64)` with `dtype` specified to avoid accidental integers.
-* **Scalar OR Array:** Use `np.typing.ArrayLike` when the function expects either a single value or an array of them.
+* **Scalar OR Array:** Use `npt.ArrayLike` when the function expects either a single value or an array of them.
   Use `np.isscalar(val)` for scalar check. Use `scalar = float(arr.item())` to get the scalar value.
 
 ## 4. Documentation
@@ -45,14 +45,15 @@ This document outlines the code style and architectural patterns for math projec
 from collections.abc import Sequence
 
 import numpy as np
+import numpy.typing as npt
 
 
 class SomeClass:
     """Class docstring."""
 
-    def __init__(self, points: Sequence[float] | np.ndarray):
+    def __init__(self, points: npt.ArrayLike):
         """Magic methods first."""
-        self.points = np.asarray(points, dtype=np.float64)
+        self.points_arr = np.asarray(points, dtype=np.float64)
 
     def a_method(self):
         """Then normal methods, in order of importance."""
@@ -61,8 +62,11 @@ class SomeClass:
         pass
 
 
-def process_coordinates(x: np.typing.ArrayLike) -> float | np.ndarray:
-    """Do something.
+def process_coordinates(
+    x: npt.ArrayLike,
+    param: float | None = None,
+) -> float | np.ndarray:
+    """Do something important.
 
     A description with more details.
 
@@ -70,10 +74,19 @@ def process_coordinates(x: np.typing.ArrayLike) -> float | np.ndarray:
     ----------
     x
         Coordinate (coordinates).
+    param
+        Parameter (optional). Changes something. 
     """
     x_arr = np.asarray(x, dtype=np.float64)
 
     if np.isscalar(x):
         return float(x_arr.item())
     return x_arr
+
+
+# A simple helper function can have a short docstring
+def is_closed(discrete_curve: npt.ArrayLike) -> bool:
+    """Check whether a discrete_curve's first and last points coincide."""
+    curve_arr = np.asarray(discrete_curve, dtype=np.float64)
+    return np.allclose(curve_arr[0], curve_arr[-1])
 ```

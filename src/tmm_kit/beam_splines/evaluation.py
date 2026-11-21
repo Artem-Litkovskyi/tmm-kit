@@ -1,8 +1,10 @@
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 import numpy as np
+import numpy.typing as npt
 
+from tmm_kit import ElementEdge
 from tmm_kit.tmm.result import TMMResult
 
 
@@ -19,7 +21,7 @@ class BeamSpline:
     """
 
     tmm_result: TMMResult
-    support_t: Sequence[float] | np.ndarray
+    support_t: npt.ArrayLike
 
     @property
     def element_lengths(self) -> np.ndarray:
@@ -30,12 +32,12 @@ class BeamSpline:
         )
 
     def evaluate_element_state(
-        self, element_i: int, s: np.typing.ArrayLike
+        self, element_i: int, s: npt.ArrayLike
     ) -> np.ndarray:
         """Evaluate a beam state at a given element coordinate."""
         return self.tmm_result.evaluate(element_i, s)
 
-    def evaluate_spline_state(self, t: np.typing.ArrayLike) -> np.ndarray:
+    def evaluate_spline_state(self, t: npt.ArrayLike) -> np.ndarray:
         """Evaluate a beam state at a given spline coordinate."""
         return self._evaluate_spline(
             t,
@@ -43,9 +45,24 @@ class BeamSpline:
             self.evaluate_element_state,
         )
 
+    def get_edge_state(
+        self,
+        element_i: npt.ArrayLike,
+        element_edge: ElementEdge | None = None,
+    ) -> np.ndarray:
+        """Get state vectors from the array of all element states."""
+        return self.tmm_result.get_edge_state(element_i, element_edge)
+
+    def get_all_edge_states(
+        self,
+        element_edge: ElementEdge | None = None,
+    ) -> np.ndarray:
+        """Get all state vectors from the array of all element states."""
+        return self.tmm_result.get_all_edge_states(element_edge)
+
     def _evaluate_spline(
         self,
-        t: np.typing.ArrayLike,
+        t: npt.ArrayLike,
         result_shape: tuple[int, ...],
         evaluate_element: Callable[[int, np.ndarray], np.ndarray],
     ) -> np.ndarray:
@@ -87,8 +104,8 @@ class CorotationalBeamSpline(BeamSpline):
     def __init__(
         self,
         tmm_result: TMMResult,
-        support_t: Sequence[float] | np.ndarray,
-        polyline: Sequence[Sequence[float]] | np.ndarray,
+        support_t: npt.ArrayLike,
+        polyline: npt.ArrayLike,
     ) -> None:
         super().__init__(tmm_result, support_t)
 
@@ -107,7 +124,7 @@ class CorotationalBeamSpline(BeamSpline):
         )
 
     def evaluate_element_normal(
-        self, element_i: int, s: np.typing.ArrayLike
+        self, element_i: int, s: npt.ArrayLike
     ) -> np.ndarray:
         """Evaluate a rotated normal at a given element coordinate."""
         s_arr = np.atleast_1d(np.asarray(s, dtype=np.float64))
@@ -123,7 +140,7 @@ class CorotationalBeamSpline(BeamSpline):
         )
 
     def evaluate_element_point(
-        self, element_i: int, s: np.typing.ArrayLike
+        self, element_i: int, s: npt.ArrayLike
     ) -> np.ndarray:
         """Evaluate a point at a given element coordinate."""
         s_arr = np.atleast_1d(np.asarray(s, dtype=np.float64))
@@ -140,7 +157,7 @@ class CorotationalBeamSpline(BeamSpline):
         )
 
     def evaluate_element_curvature(
-        self, element_i: int, s: np.typing.ArrayLike
+        self, element_i: int, s: npt.ArrayLike
     ) -> np.ndarray:
         """Evaluate a curvature at a given element coordinate."""
         s_arr = np.atleast_1d(np.asarray(s, dtype=np.float64))
@@ -165,7 +182,7 @@ class CorotationalBeamSpline(BeamSpline):
 
         return numerator / denominator
 
-    def evaluate_spline_normal(self, t: np.typing.ArrayLike) -> np.ndarray:
+    def evaluate_spline_normal(self, t: npt.ArrayLike) -> np.ndarray:
         """Evaluate a rotated normal at a given spline coordinate."""
         return self._evaluate_spline(
             t,
@@ -173,7 +190,7 @@ class CorotationalBeamSpline(BeamSpline):
             self.evaluate_element_normal,
         )
 
-    def evaluate_spline_point(self, t: np.typing.ArrayLike) -> np.ndarray:
+    def evaluate_spline_point(self, t: npt.ArrayLike) -> np.ndarray:
         """Evaluate a point at a given spline coordinate."""
         return self._evaluate_spline(
             t,
@@ -181,7 +198,7 @@ class CorotationalBeamSpline(BeamSpline):
             self.evaluate_element_point,
         )
 
-    def evaluate_spline_curvature(self, t: np.typing.ArrayLike) -> np.ndarray:
+    def evaluate_spline_curvature(self, t: npt.ArrayLike) -> np.ndarray:
         """Evaluate a curvature at a given spline coordinate."""
         return self._evaluate_spline(
             t,

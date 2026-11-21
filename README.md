@@ -133,7 +133,7 @@ to change what the spline does. There are presets for common use-cases:
 - `BeamElement` — basic Euler-Bernoulli beam with $EI=1$.
 - `BeamElementStretched` — reduces beam length by applying a force outwards.
 - `BeamElementCompressed` — reduces beam curvature by applying a force inwards.
-- `BeamElementOnElasticFoundation` — smoothing spline.
+- `BeamElementOnElasticFoundation` — elastic foundation smoothing spline.
 
 #### Beam Nodes
 

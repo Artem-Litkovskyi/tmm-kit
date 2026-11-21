@@ -1,6 +1,7 @@
-from collections.abc import Sequence, Sized
+from collections.abc import Mapping, Sequence, Sized
 
 import numpy as np
+import numpy.typing as npt
 
 from tmm_kit.beam_splines.elements import BeamElement
 from tmm_kit.beam_splines.nodes import BeamDummyNode, BeamSplineNode
@@ -12,8 +13,8 @@ def create_beam_elements_and_nodes(
     support_t: Sequence[float] | np.ndarray,
     element_class: type[TMMElement],
     node_class: type[BeamSplineNode],
-    element_data: dict[str, Sequence] | None = None,
-    node_data: dict[str, Sequence] | None = None,
+    element_data: Mapping[str, Sequence] | None = None,
+    node_data: Mapping[str, Sequence] | None = None,
 ) -> tuple[list[BeamElement], list[BeamSplineNode]]:
     """Populate elements and nodes of the same type.
 
@@ -73,11 +74,11 @@ def create_beam_elements_and_nodes(
 
 
 def create_cbs_elements_and_nodes(
-    polyline: Sequence[Sequence[float]] | np.ndarray,
+    polyline: npt.ArrayLike,
     element_class: type[TMMElement],
     node_class: type[BeamSplineNode],
-    element_data: dict[str, Sequence] | None = None,
-    node_data: dict[str, Sequence] | None = None,
+    element_data: Mapping[str, Sequence] | None = None,
+    node_data: Mapping[str, Sequence] | None = None,
     dummy_nodes_per_element: int | Sequence[int] | np.ndarray = 0,
 ) -> tuple[list[BeamElement], list[BeamSplineNode], np.ndarray, np.ndarray]:
     """Populate elements and nodes of the same type.
@@ -144,9 +145,6 @@ def create_cbs_elements_and_nodes(
         element_data, node_data, real_elements_n, real_nodes_n
     )
 
-    if "displacement" not in node_data:
-        node_data["displacement"] = np.repeat(0.0, real_nodes_n)
-
     if "angle_misalignment" in node_data:
         raise ValueError(
             'Do not include "angle_misalignment" in node_data: '
@@ -176,6 +174,7 @@ def create_cbs_elements_and_nodes(
             dummy_nodes_remaining -= 1
         else:
             node_kwargs = {k: v[element_i] for k, v in node_data.items()}
+            node_kwargs.setdefault("displacement", 0.0)
             node_kwargs["angle_misalignment"] = angle_diffs[i + 1]
             nodes.append(node_class(i, i + 1, **node_kwargs))
             element_i += 1
@@ -185,11 +184,11 @@ def create_cbs_elements_and_nodes(
 
 
 def _validate_data(
-    element_data: dict[str, Sequence] | None,
-    node_data: dict[str, Sequence] | None,
+    element_data: Mapping[str, Sequence] | None,
+    node_data: Mapping[str, Sequence] | None,
     elements_n: int,
     nodes_n: int,
-) -> tuple[dict[str, Sequence], dict[str, Sequence]]:
+) -> tuple[Mapping[str, Sequence], Mapping[str, Sequence]]:
     if element_data is None:
         element_data = {}
     if node_data is None:

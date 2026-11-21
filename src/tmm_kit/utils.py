@@ -1,9 +1,10 @@
 import numpy as np
+import numpy.typing as npt
 
 
 def subdivide_array(
     array: np.ndarray,
-    subdivisions: int | np.typing.ArrayLike,
+    subdivisions: int | npt.ArrayLike,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Linearly subdivide consecutive entries of an array.
 
