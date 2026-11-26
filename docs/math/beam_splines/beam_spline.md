@@ -12,10 +12,15 @@ By preserving the state vectors at both edges of every segment (avoiding simplif
 The beam state at any cross-section is defined by the vector $\hat{Y}$:
 $$ \hat{Y} = \begin{Bmatrix} W \\ \theta \\ M \\ Q \end{Bmatrix} $$
 Where:
-*   **$W$**: Displacement (directed along the y-axis)
-*   **$\theta = \frac{dW}{dt}$**: Slope
-*   **$M = \frac{d\theta}{dt}$**: Bending moment
-*   **$Q = \frac{dM}{dt}$**: Shear force
+
+| Variable                 | Meaning                                  | Constant            |
+|--------------------------|------------------------------------------|---------------------|
+| $W$                      | Displacement (directed along the y-axis) | `BEAM_DISPLACEMENT` |
+| $\theta = \frac{dW}{dt}$ | Slope                                    | `BEAM_SLOPE`        |
+| $M = \frac{d\theta}{dt}$ | Bending moment                           | `BEAM_MOMENT`       |
+| $Q = \frac{dM}{dt}$      | Shear force                              | `BEAM_FORCE`        |
+
+The variables are stored in this order, `BEAM_STATE_SIZE = 4`.
 
 ## Problem Geometry
 *   The beam is divided into $N$ segments with edges placed at $N+1$ points at coordinates $t_i$.
@@ -44,6 +49,18 @@ where $s \in [0; L_i]$ is a local coordinate.
 
 After the beam is solved and all $\hat{Y}_0^i$ are known, the same transfer matrix can be used to **evaluate** the beam state $W$ in any point.
 
+| Element                                    | Class                   |
+|--------------------------------------------|-------------------------|
+| Euler-Bernoulli beam with $EI = 1$         | `BeamElement`           |
+| The same beam stretched by an axial force  | `BeamElementStretched`  |
+| The same beam compressed by an axial force | `BeamElementCompressed` |
+
+| Evaluation                                       | Method                              |
+|--------------------------------------------------|-------------------------------------|
+| State at a local coordinate $s$ of an element    | `BeamSpline.evaluate_element_state` |
+| State at a spline coordinate $t$                 | `BeamSpline.evaluate_spline_state`  |
+| States $\hat{Y}_0^i$, $\hat{Y}_e^i$ at the edges | `BeamSpline.get_edge_state`         |
+
 ---
 
 ## 2. Standard Conjugation Equations (4N - 4 equations)
@@ -62,6 +79,10 @@ At each of the $N-1$ nodes, the end of the $i$-th segment meets the start of the
 
 This provides **4 equations per internal node**, totaling $4(N-1) = 4N - 4$ equations.
 
+| Node                                 | Class               | Parameters                   |
+|--------------------------------------|---------------------|------------------------------|
+| Support that the beam passes through | `BeamPinnedSupport` | `displacement` – $\Pi_{i+1}$ |
+
 ---
 
 ## 3. Extra Boundary Conditions (4 equations)
@@ -73,6 +94,14 @@ To make the final system square ($8N$ equations for $8N$ unknowns), we must appl
 4.  **Last node moment (e.g., pinned):** $M_e^{N-1} = 0$
 
 *(These can be swapped for clamped conditions, e.g., $\theta_0^0 = 0$, depending on the required boundary type).*
+
+| Boundary type         | Function       | Equations at the first and the last nodes                         |
+|-----------------------|----------------|-------------------------------------------------------------------|
+| Pinned                | `pinned_ends`  | Set displacements, zero moments                                   |
+| Clamped               | `clamped_ends` | Set displacements and slopes                                      |
+| Free                  | `free_ends`    | Zero moments and forces                                           |
+| Pinned, closed curve  | `pinned_loop`  | Set displacement at the closing node, continuous slope and moment |
+| Clamped, closed curve | `clamped_loop` | Set displacement and slope at the closing node                    |
 
 ---
 
@@ -87,3 +116,6 @@ The final linear system takes the form of $K \cdot X = F$, where $K$ is an $8N \
 | **Total Equations**   | **$8N$** |
 
 With the shear constraints correctly relaxed at the nodes, the matrix $K$ will be non-singular and solvable via standard sparse linear algebra routines (e.g., `scipy.sparse.linalg.spsolve`).
+
+The elements and nodes of a spline are populated by `create_beam_elements_and_nodes`,
+the system is assembled and solved by `TMMSolver`.

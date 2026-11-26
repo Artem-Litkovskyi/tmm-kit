@@ -5,7 +5,7 @@ with the presets from `tmm_kit.electrical`.
 
 The same approach works for any other branched system (e.g., pipeline networks):
 define your own elements, nodes and boundary conditions by subclassing `TMMElement` and `TMMNode`
-and building `TMMEquation`s (see `docs/tmm/transfer_matrix_method.md`).
+and building `TMMEquation`s (see `docs/math/tmm/transfer_matrix_method.md`).
 
 ## Circuit Model
 

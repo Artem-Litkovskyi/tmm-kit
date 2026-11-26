@@ -2,19 +2,8 @@ from collections.abc import Sequence
 
 import numpy as np
 
+import tmm_kit.beam_splines as bs
 from tmm_kit import TMMSolver
-from tmm_kit.beam_splines import (
-    BEAM_STATE_SIZE,
-    BeamElement,
-    BeamPinnedSupport,
-    CorotationalBeamSpline,
-    angle_diff,
-    create_cbs_elements_and_nodes,
-    pinned_ends,
-    pinned_loop,
-    real_points_mask,
-    refine_polyline,
-)
 
 # Polylines
 SIMPLE_POLYLINE = [[0, 0], [1, 1], [2, 1], [3, 2]]
@@ -35,20 +24,20 @@ def set_up_solver(
     loop=False,
     dummy_nodes_per_element: int | Sequence[int] = 0,
 ):
-    elements, nodes, support_t, angle_diffs = create_cbs_elements_and_nodes(
+    elements, nodes, support_t, angle_diffs = bs.create_cbs_elements_and_nodes(
         polyline=polyline,
-        element_class=BeamElement,
-        node_class=BeamPinnedSupport,
+        element_class=bs.BeamElement,
+        node_class=bs.BeamPinnedSupport,
         dummy_nodes_per_element=dummy_nodes_per_element,
     )
 
     if loop:
-        bcs = pinned_loop(0, angle_diffs[0])
+        bcs = bs.pinned_loop(0, angle_diffs[0])
     else:
-        bcs = pinned_ends(0, 0)
+        bcs = bs.pinned_ends(0, 0)
 
     solver = TMMSolver(
-        BEAM_STATE_SIZE,
+        bs.BEAM_STATE_SIZE,
         elements,
         nodes,
         bcs,
@@ -59,7 +48,7 @@ def set_up_solver(
 
 # --- POLYLINE HELPERS ---
 def test_angle_misalignment():
-    angle_diffs = angle_diff(SIMPLE_POLYLINE)
+    angle_diffs = bs.angle_diff(SIMPLE_POLYLINE)
 
     np.testing.assert_allclose(
         angle_diffs,
@@ -69,21 +58,21 @@ def test_angle_misalignment():
 
 def test_real_points_mask():
     np.testing.assert_array_equal(
-        real_points_mask(real_points_n=4, dummy_points_per_segment=2),
+        bs.real_points_mask(real_points_n=4, dummy_points_per_segment=2),
         [True, False, False, True, False, False, True, False, False, True],
     )
 
 
 def test_real_points_mask_without_dummy_points():
     np.testing.assert_array_equal(
-        real_points_mask(real_points_n=4, dummy_points_per_segment=0),
+        bs.real_points_mask(real_points_n=4, dummy_points_per_segment=0),
         [True, True, True, True],
     )
 
 
 def test_real_points_mask_with_different_dummy_points_per_segment():
     np.testing.assert_array_equal(
-        real_points_mask(real_points_n=4, dummy_points_per_segment=[0, 2, 1]),
+        bs.real_points_mask(real_points_n=4, dummy_points_per_segment=[0, 2, 1]),
         [True, True, False, False, True, False, True],
     )
 
@@ -101,7 +90,7 @@ def test_factory_support_t():
 # --- EVALUATION ---
 def test_evaluate_at_polyline():
     solver, support_t = set_up_solver(SIMPLE_POLYLINE)
-    spline = CorotationalBeamSpline(solver.solve(), support_t, SIMPLE_POLYLINE)
+    spline = bs.CorotationalBeamSpline(solver.solve(), support_t, SIMPLE_POLYLINE)
 
     points = spline.evaluate_spline_point(DESIRED_SIMPLE_POLYLINE_T)
 
@@ -113,7 +102,7 @@ def test_evaluate_at_polyline():
 
 def test_approximate_circle_no_dummy_nodes():
     solver, support_t = set_up_solver(CIRCLE_POLYLINE, loop=True)
-    spline = CorotationalBeamSpline(solver.solve(), support_t, CIRCLE_POLYLINE)
+    spline = bs.CorotationalBeamSpline(solver.solve(), support_t, CIRCLE_POLYLINE)
 
     points = spline.evaluate_spline_point(CIRCLE_EVAL_T)
     radius = np.linalg.norm(points, axis=1)
@@ -127,17 +116,17 @@ def test_approximate_circle_no_dummy_nodes():
 
 def test_approximate_circle_one_dummy_node_improves_accuracy():
     solver, support_t = set_up_solver(CIRCLE_POLYLINE, loop=True)
-    spline = CorotationalBeamSpline(solver.solve(), support_t, CIRCLE_POLYLINE)
+    spline = bs.CorotationalBeamSpline(solver.solve(), support_t, CIRCLE_POLYLINE)
 
     points = spline.evaluate_spline_point(CIRCLE_EVAL_T)
     radius = np.linalg.norm(points, axis=1)
     radius_error1 = np.max(abs(radius - DESIRED_RADIUS))
 
     dummy_nodes_per_element = 1
-    refined_polyline = refine_polyline(spline, dummy_nodes_per_element)
+    refined_polyline = bs.refine_polyline(spline, dummy_nodes_per_element)
 
     solver, support_t = set_up_solver(refined_polyline, True, dummy_nodes_per_element)
-    spline = CorotationalBeamSpline(solver.solve(), support_t, refined_polyline)
+    spline = bs.CorotationalBeamSpline(solver.solve(), support_t, refined_polyline)
 
     eval_t = np.linspace(support_t[0], support_t[-1], 256)
 
@@ -153,7 +142,7 @@ def test_approximate_circle_one_dummy_node_improves_accuracy():
 
 def test_precomputed_states_give_same_results():
     solver, support_t = set_up_solver(CIRCLE_POLYLINE, loop=True)
-    spline = CorotationalBeamSpline(solver.solve(), support_t, CIRCLE_POLYLINE)
+    spline = bs.CorotationalBeamSpline(solver.solve(), support_t, CIRCLE_POLYLINE)
 
     states = spline.evaluate_spline_state(CIRCLE_EVAL_T)
 

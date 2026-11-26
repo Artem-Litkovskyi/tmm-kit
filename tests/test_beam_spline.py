@@ -1,14 +1,7 @@
 import numpy as np
 
+import tmm_kit.beam_splines as bs
 from tmm_kit import TMMSolver
-from tmm_kit.beam_splines import (
-    BEAM_STATE_SIZE,
-    BeamElement,
-    BeamPinnedSupport,
-    BeamSpline,
-    create_beam_elements_and_nodes,
-    pinned_ends,
-)
 
 # Three supports (two elements conjugated at one node)
 SUPPORT_T = [2, 4, 5]
@@ -26,17 +19,17 @@ DESIRED_EDGE_STATES = np.array(
 )
 
 # Solver setup
-ELEMENTS, NODES = create_beam_elements_and_nodes(
+ELEMENTS, NODES = bs.create_beam_elements_and_nodes(
     support_t=SUPPORT_T,
-    element_class=BeamElement,
-    node_class=BeamPinnedSupport,
+    element_class=bs.BeamElement,
+    node_class=bs.BeamPinnedSupport,
     node_data={"displacement": SUPPORT_W[1:-1]},
 )
 
-BCS = pinned_ends(SUPPORT_W[0], SUPPORT_W[-1])
+BCS = bs.pinned_ends(SUPPORT_W[0], SUPPORT_W[-1])
 
 SOLVER = TMMSolver(
-    BEAM_STATE_SIZE,
+    bs.BEAM_STATE_SIZE,
     ELEMENTS,
     NODES,
     BCS,
@@ -54,7 +47,7 @@ def test_tmm_solver_beam_edge_states():
 
 def test_beam_spline_element_lengths():
     result = SOLVER.solve()
-    spline = BeamSpline(result, SUPPORT_T)
+    spline = bs.BeamSpline(result, SUPPORT_T)
 
     np.testing.assert_allclose(
         spline.element_lengths,
@@ -64,7 +57,7 @@ def test_beam_spline_element_lengths():
 
 def test_beam_spline_evaluate_element():
     result = SOLVER.solve()
-    spline = BeamSpline(result, SUPPORT_T)
+    spline = bs.BeamSpline(result, SUPPORT_T)
 
     element_lengths = np.diff(SUPPORT_T)
 
@@ -80,7 +73,7 @@ def test_beam_spline_evaluate_element():
 
 def test_beam_spline_evaluate_global():
     result = SOLVER.solve()
-    spline = BeamSpline(result, SUPPORT_T)
+    spline = bs.BeamSpline(result, SUPPORT_T)
 
     np.testing.assert_allclose(
         spline.evaluate_spline_state(SUPPORT_T),

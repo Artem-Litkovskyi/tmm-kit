@@ -1,10 +1,11 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
+from functools import cached_property
 
 import numpy as np
 import numpy.typing as npt
 
-from .base import ElementEdge, TMMElement
+from .base import ElementEdge, ElementGroups, TMMElement
 
 
 @dataclass
@@ -21,7 +22,7 @@ class TMMResult:
 
     def evaluate(
         self,
-        element_i: int,
+        element_i: npt.ArrayLike,
         s: npt.ArrayLike,
     ) -> np.ndarray:
         """Evaluate an element state at a certain local coordinate.
@@ -29,7 +30,8 @@ class TMMResult:
         Parameters
         ----------
         element_i
-            Element index.
+            Element index. Can be an array of indices that is broadcast
+            with s: then each coordinate belongs to its own element.
         s
             Local coordinate (coordinates)
             from 0 to self.elements[element_i].length.
@@ -37,9 +39,13 @@ class TMMResult:
         Returns
         -------
         states
-            States of shape ``(*s.shape, state_size)``.
+            States of shape ``(*s.shape, state_size)``
+            (the broadcast shape if element_i is an array).
         """
         s_arr = np.asarray(s, dtype=np.float64)
+
+        if np.ndim(element_i) > 0:
+            return self._evaluate_elements(np.asarray(element_i, dtype=np.int64), s_arr)
 
         tm_A, tm_b = self.elements[element_i].get_transfer_eq(s_arr)
         states = tm_A @ self.get_edge_state(element_i, ElementEdge.START) + tm_b
@@ -89,6 +95,20 @@ class TMMResult:
         if element_edge is None:
             return self.edge_states.reshape(-1, self.state_size)
         return self._states_by_element()[:, self._edge_index_offset(element_edge)]
+
+    def _evaluate_elements(self, element_i: np.ndarray, s: np.ndarray) -> np.ndarray:
+        element_i, s = np.broadcast_arrays(element_i, s)
+        flat_element_i = element_i.ravel()
+
+        tm_A, tm_b = self._element_groups.get_transfer_eq(flat_element_i, s.ravel())
+        start_states = self.get_edge_state(flat_element_i, ElementEdge.START)
+        states = np.einsum("nij,nj->ni", tm_A, start_states) + tm_b
+
+        return states.reshape(*s.shape, self.state_size)
+
+    @cached_property
+    def _element_groups(self) -> ElementGroups:
+        return ElementGroups(self.elements, self.state_size)
 
     def _states_by_element(self) -> np.ndarray:
         return self.edge_states.reshape(len(self.elements), 2, self.state_size)

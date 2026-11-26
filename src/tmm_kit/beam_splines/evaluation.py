@@ -36,17 +36,15 @@ class BeamSpline:
             dtype=np.float64,
         )
 
-    def evaluate_element_state(self, element_i: int, s: npt.ArrayLike) -> np.ndarray:
+    def evaluate_element_state(
+        self, element_i: npt.ArrayLike, s: npt.ArrayLike
+    ) -> np.ndarray:
         """Evaluate a beam state at a given element coordinate."""
         return self.tmm_result.evaluate(element_i, s)
 
     def evaluate_spline_state(self, t: npt.ArrayLike) -> np.ndarray:
         """Evaluate a beam state at a given spline coordinate."""
-        return self._evaluate_spline(
-            t,
-            (self.tmm_result.state_size,),
-            self.evaluate_element_state,
-        )
+        return self._evaluate_spline(t, self.evaluate_element_state)
 
     def get_edge_state(
         self,
@@ -66,42 +64,26 @@ class BeamSpline:
     def _evaluate_spline(
         self,
         t: npt.ArrayLike,
-        result_shape: tuple[int, ...],
         evaluate_element: Callable[..., np.ndarray],
         states: np.ndarray | None = None,
     ) -> np.ndarray:
         """Evaluate an element-wise quantity at spline coordinates.
 
-        If states are given, each element group gets its slice of them
-        as the third argument of evaluate_element.
+        The evaluate_element is called once with the arrays of element indices
+        and local coordinates. If states are given, they are its third argument.
         """
         eval_ts = np.atleast_1d(np.asarray(t, dtype=np.float64))
-        result = np.empty((eval_ts.size, *result_shape), dtype=np.float64)
-
-        if states is not None:
-            states = np.atleast_2d(states)
 
         element_indices = (
             np.searchsorted(self._support_t_arr, eval_ts, side="right") - 1
         )
         element_indices = np.clip(element_indices, 0, self._support_t_arr.size - 2)
+        s = eval_ts - self._support_t_arr[element_indices]
 
-        # Group the evaluation points by element
-        order = np.argsort(element_indices, kind="stable")
-        unique_elements, group_starts = np.unique(
-            element_indices[order], return_index=True
-        )
-
-        for element_i, state_indices in zip(
-            unique_elements, np.split(order, group_starts[1:])
-        ):
-            s = eval_ts[state_indices] - self._support_t_arr[element_i]
-            if states is None:
-                result[state_indices] = evaluate_element(int(element_i), s)
-            else:
-                result[state_indices] = evaluate_element(
-                    int(element_i), s, states[state_indices]
-                )
+        if states is None:
+            result = evaluate_element(element_indices, s)
+        else:
+            result = evaluate_element(element_indices, s, np.atleast_2d(states))
 
         if np.isscalar(t):
             return result[0]
@@ -148,7 +130,7 @@ class CorotationalBeamSpline(BeamSpline):
 
     def evaluate_element_normal(
         self,
-        element_i: int,
+        element_i: npt.ArrayLike,
         s: npt.ArrayLike,
         states: np.ndarray | None = None,
     ) -> np.ndarray:
@@ -157,7 +139,7 @@ class CorotationalBeamSpline(BeamSpline):
         Parameters
         ----------
         element_i
-            Element index.
+            Element index, or an array of indices, one per coordinate.
         s
             Local coordinate (coordinates) from 0 to the element length.
         states
@@ -172,13 +154,14 @@ class CorotationalBeamSpline(BeamSpline):
         local_x = -np.sin(theta)
         local_y = np.cos(theta)
 
-        return np.outer(local_x, self._tangents[element_i]) + np.outer(
-            local_y, self._normals[element_i]
+        return (
+            local_x[:, None] * self._tangents[element_i]
+            + local_y[:, None] * self._normals[element_i]
         )
 
     def evaluate_element_point(
         self,
-        element_i: int,
+        element_i: npt.ArrayLike,
         s: npt.ArrayLike,
         states: np.ndarray | None = None,
     ) -> np.ndarray:
@@ -187,7 +170,7 @@ class CorotationalBeamSpline(BeamSpline):
         Parameters
         ----------
         element_i
-            Element index.
+            Element index, or an array of indices, one per coordinate.
         s
             Local coordinate (coordinates) from 0 to the element length.
         states
@@ -203,13 +186,13 @@ class CorotationalBeamSpline(BeamSpline):
 
         return (
             self.polyline[element_i]
-            + np.outer(local_x, self._tangents[element_i])
-            + np.outer(local_y, self._normals[element_i])
+            + local_x[:, None] * self._tangents[element_i]
+            + local_y[:, None] * self._normals[element_i]
         )
 
     def evaluate_element_curvature(
         self,
-        element_i: int,
+        element_i: npt.ArrayLike,
         s: npt.ArrayLike,
         states: np.ndarray | None = None,
     ) -> np.ndarray:
@@ -218,7 +201,7 @@ class CorotationalBeamSpline(BeamSpline):
         Parameters
         ----------
         element_i
-            Element index.
+            Element index, or an array of indices, one per coordinate.
         s
             Local coordinate (coordinates) from 0 to the element length.
         states
@@ -261,12 +244,7 @@ class CorotationalBeamSpline(BeamSpline):
         states
             Optional precomputed states at the same coordinates, shape (N, 4).
         """
-        return self._evaluate_spline(
-            t,
-            (2,),
-            self.evaluate_element_normal,
-            states,
-        )
+        return self._evaluate_spline(t, self.evaluate_element_normal, states)
 
     def evaluate_spline_point(
         self,
@@ -282,12 +260,7 @@ class CorotationalBeamSpline(BeamSpline):
         states
             Optional precomputed states at the same coordinates, shape (N, 4).
         """
-        return self._evaluate_spline(
-            t,
-            (2,),
-            self.evaluate_element_point,
-            states,
-        )
+        return self._evaluate_spline(t, self.evaluate_element_point, states)
 
     def evaluate_spline_curvature(
         self,
@@ -303,9 +276,4 @@ class CorotationalBeamSpline(BeamSpline):
         states
             Optional precomputed states at the same coordinates, shape (N, 4).
         """
-        return self._evaluate_spline(
-            t,
-            (),
-            self.evaluate_element_curvature,
-            states,
-        )
+        return self._evaluate_spline(t, self.evaluate_element_curvature, states)

@@ -47,3 +47,8 @@ $$A(t) = \begin{pmatrix} K_1(t) \quad \cdots \quad K_p(t) \\ \vdots \quad \ddots
 Free term of the transfer equation:
 
 $$\vec{B}(t) = (u_{zp}(t), ..., u_{zp}^{(p)}(t))^T$$
+
+| Math                                                        | Code                                                    |
+|-------------------------------------------------------------|---------------------------------------------------------|
+| $A(t)$ and $\vec{B}(t)$                                     | `K` and `f` returned by `TMMElement.get_transfer_eq(s)` |
+| Stacking the entries of $A(t)$ and $\vec{B}(t)$ into arrays | `stack_transfer_eq`                                     |

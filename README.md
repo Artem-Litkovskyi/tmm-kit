@@ -8,9 +8,12 @@ This library is created for these courses at the Faculty of Applied Math of KPI:
 
 ### 1. `tmm_kit` — General TMM [1]
 
-- **Branched systems of connected elements:**  electrical circuits, pipeline networks.
-Only basic electrical presets are included as an example (`tmm_kit.electrical`) — any other domain is
-implemented by defining your own elements, nodes and boundary conditions.
+- **Branched systems of connected elements:** electrical circuits, 3D frames, pipeline networks.
+- **Included presets:** basic electrical circuits (`tmm_kit.electrical`) and basic spatial beams
+(`tmm_kit.spatial_beams`). Any other domain is implemented by defining your own elements, nodes
+and boundary conditions.
+- **Performance:** elements and nodes of the same class are processed in a single vectorized call,
+so systems with hundreds of elements are solved and evaluated in milliseconds.
 
 ### 2. `tmm_kit.beam_splines` — TMM-based beam splines [2]
 
@@ -121,6 +124,11 @@ spline = bs.BeamSpline(result, support_t)
 states = spline.evaluate_spline_state(t=np.linspace(support_t[0], support_t[-1], 128))
 ```
 
+Every domain subpackage exports all its public names, so it can be imported under a short alias
+instead of a long import list: `tmm_kit.beam_splines as bs`, `tmm_kit.electrical as el`,
+`tmm_kit.spatial_beams as sb`. The core names (`TMMSolver`, `ElementEdge`, `TMMEquation`)
+are imported directly from `tmm_kit`.
+
 Swap `element_class`, `node_class` and the boundary condition preset (`bs.pinned_ends`)
 to change what the spline does. There are presets for common use-cases:
 
@@ -151,21 +159,26 @@ Custom conditions are built with `TMMEquation`.
 
 </details>
 
-All classes and functions have docstrings in the source code. For more usage examples see:
-- `docs/beam_spline_examples.md` — beam splines, including CBS with dummy node refinement;
-- `docs/electrical_example.md` — general TMM on a branched electrical circuit.
+For more usage examples see:
+- `docs/usage/beam_spline_examples.md` — beam splines, including CBS with dummy node refinement;
+- `docs/usage/electrical_example.md` — general TMM on a branched electrical circuit;
+- `docs/usage/spatial_beam_examples.md` — a branched 3D frame of spatial beams;
+- `docs/usage/custom_classes.md` — custom elements and nodes, making them vectorized.
+
+All classes and public functions have docstrings in the source code.
 
 ### Math Documentation
 
 The underlying math is documented here. The second column maps each topic to the code that implements it.
 
-| Document                                        | Implemented by                                                                       | Ref            |
-|-------------------------------------------------|--------------------------------------------------------------------------------------|----------------|
-| `docs/tmm/transfer_matrix_method.md`            | `TMMSolver`, `TMMEquation`                                                           | [1, lecture 1] |
-| `docs/tmm/krylov_method.md`                     | background for deriving transfer matrices for elements                               | [1, lecture 2] |
-| `docs/beam_splines/beam_spline.md`              | `BeamElement`, `BeamPinnedSupport`, `BeamSpline`                                     | [2]            |
-| `docs/beam_splines/beam_spline_smoothing.md`    | `BeamElementOnElasticFoundation`, `BeamElasticSupport`, `BeamElasticSupportInverted` | [2]            |
-| `docs/beam_splines/corotational_beam_spline.md` | `CorotationalBeamSpline`                                                             | [2]            |
+| Document                                             | Implemented by                                                                       | Ref                  |
+|------------------------------------------------------|--------------------------------------------------------------------------------------|----------------------|
+| `docs/math/tmm/transfer_matrix_method.md`            | `TMMSolver`, `TMMEquation`                                                           | [1, lecture 1]       |
+| `docs/math/tmm/krylov_method.md`                     | background for deriving transfer matrices for elements                               | [1, lecture 2]       |
+| `docs/math/beam_splines/beam_spline.md`              | `BeamElement`, `BeamPinnedSupport`, `BeamSpline`                                     | [2]                  |
+| `docs/math/beam_splines/beam_spline_smoothing.md`    | `BeamElementOnElasticFoundation`, `BeamElasticSupport`, `BeamElasticSupportInverted` | [2]                  |
+| `docs/math/beam_splines/corotational_beam_spline.md` | `CorotationalBeamSpline`                                                             | [2]                  |
+| `docs/math/spatial_beams/spatial_beam.md`            | `SpatialBeamElement`, `SpatialBeamRigidNode`                                         | [1, lectures 15, 20] |
 
 ## 📚 Literature
 

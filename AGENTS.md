@@ -90,3 +90,24 @@ def is_closed(discrete_curve: npt.ArrayLike) -> bool:
     curve_arr = np.asarray(discrete_curve, dtype=np.float64)
     return np.allclose(curve_arr[0], curve_arr[-1])
 ```
+## 7. Project Conventions (tmm-kit)
+* **Subpackage aliases:** Every domain subpackage re-exports its public names in `__init__.py`, so that the user
+  can avoid long import lists by importing the subpackage under a short alias:
+
+  | Subpackage              | Alias |
+  |-------------------------|-------|
+  | `tmm_kit.beam_splines`  | `bs`  |
+  | `tmm_kit.electrical`    | `el`  |
+  | `tmm_kit.spatial_beams` | `sb`  |
+
+  ```python
+  import tmm_kit.beam_splines as bs
+  from tmm_kit import TMMSolver
+
+  solver = TMMSolver(bs.BEAM_STATE_SIZE, elements, nodes, bcs)
+  ```
+* **Public API:** When a public name is added to a subpackage, export it in the subpackage's `__init__.py`
+  and `__all__`. When a subpackage is added, give it an alias in the table above.
+* **Documentation and tests:** Code examples in `README.md` and `docs/`, as well as the tests, must use the aliases.
+  The core names (`TMMSolver`, `ElementEdge`, `TMMEquation`, etc.) are imported directly from `tmm_kit`.
+* **Library code:** Inside `src/` keep explicit `from ... import ...` statements.

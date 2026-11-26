@@ -181,7 +181,7 @@ points = spline.evaluate_spline_point(eval_t, states)
 curvatures = spline.evaluate_spline_curvature(eval_t, states)
 ```
 
-The iterative CBS polyline refinement is also supported (see `docs/beam_splines/corotational_beam_spline.md`
+The iterative CBS polyline refinement is also supported (see `docs/math/beam_splines/corotational_beam_spline.md`
 for more details):
 
 ```python

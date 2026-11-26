@@ -14,6 +14,16 @@ In order to find these unknowns, a system of such equations must be solved:
 
 When we have state vectors $\vec{Y}^i_0$ at the start of each element, the transfer equations can be used to calculate a state vector at any point $\vec{Y}^i(s)$ of any element.
 
+| Math                                | Code                                                        |
+|-------------------------------------|-------------------------------------------------------------|
+| Element, its length $L_i$           | `TMMElement`, `TMMElement.length`                           |
+| Number of state variables $K$       | `state_size` argument of `TMMSolver`                        |
+| Edge of an element (start or end)   | `ElementEdge.START`, `ElementEdge.END`                      |
+| One equation of the system          | `TMMEquation`                                               |
+| Assembling and solving the system   | `TMMSolver.solve`                                           |
+| States $\vec{Y}^i_0$, $\vec{Y}^i_e$ | `TMMResult.get_edge_state`, `TMMResult.get_all_edge_states` |
+| State $\vec{Y}^i(s)$                | `TMMResult.evaluate`                                        |
+
 ## Transfer Equations
 
 The state of an element at a certain point can be calculated by the transfer equation:
@@ -25,6 +35,10 @@ The transfer matrix $A(t)$ and the vector $\vec{B}(t)$ are found analytically by
 The state at the end of the element is:
 
 $$\vec{Y}^i_e = A(L_i)\vec{Y}^i_0+\vec{B}(L_i)$$
+
+| Math                    | Code                                                    |
+|-------------------------|---------------------------------------------------------|
+| $A(s)$ and $\vec{B}(s)$ | `K` and `f` returned by `TMMElement.get_transfer_eq(s)` |
 
 ## Conjugation Equations
 
@@ -39,6 +53,12 @@ $$\vec{Y}^{i+1}_0 = C\vec{Y}^i_e+\vec{D}$$
 The simplest case is when the state is continuous: then $C = I$ (identity matrix) and $\vec{D} = 0$.
 
 However, for some problems (such as a beam supported at conjugation points) the matrix form of this equation can't be used. Then the single matrix equation is replaced by a system of $K$ regular  equations.
+
+| Math                                      | Code                         |
+|-------------------------------------------|------------------------------|
+| Node and its system of equations          | `TMMNode.get_conjugation_eq` |
+| Continuity of a state variable            | `continuity_equation`        |
+| Jump of a state variable by a given value | `offset_equation`            |
 
 ### Multiple Elements
 
@@ -59,3 +79,10 @@ For the second group:
 $$E^1_e = E^2_e + \hat{E^2} = \dots = E^k_e + \hat{E^k} = E^{k+1}_0 + \hat{E^{k+1}} = \dots = E^{K}_0 + \hat{E^K}$$
 
 where $\hat{E}$ is an external factor.
+
+| Math                                                   | Code                                                    |
+|--------------------------------------------------------|---------------------------------------------------------|
+| Inbound and outbound elements of a node                | `TMMNode.inbound_elements`, `TMMNode.outbound_elements` |
+| Electrical circuit: $E$ and $I$                        | `STATE_E`, `STATE_I` (`tmm_kit.electrical`)             |
+| Electrical circuit node ($\hat{I} = 0$, $\hat{E} = 0$) | `ElectricalNode`                                        |
+| Spatial beam rigid node                                | `SpatialBeamRigidNode` (`tmm_kit.spatial_beams`)        |

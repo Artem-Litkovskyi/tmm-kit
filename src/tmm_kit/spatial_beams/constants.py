@@ -1,0 +1,25 @@
+SPATIAL_BEAM_STATE_SIZE = 12
+
+# Local axis offsets inside each vector group
+AXIS_T = 0  # tangent
+AXIS_N = 1  # normal
+AXIS_B = 2  # binormal
+
+# Vector group starts: a state variable index is group + axis
+SPATIAL_BEAM_DISPLACEMENT = 0
+SPATIAL_BEAM_ROTATION = 3
+SPATIAL_BEAM_MOMENT = 6
+SPATIAL_BEAM_FORCE = 9
+
+SPATIAL_BEAM_DISPLACEMENT_T = 0  # u
+SPATIAL_BEAM_DISPLACEMENT_N = 1  # w_n
+SPATIAL_BEAM_DISPLACEMENT_B = 2  # w_beta
+SPATIAL_BEAM_ROTATION_T = 3  # phi
+SPATIAL_BEAM_ROTATION_N = 4  # theta_n
+SPATIAL_BEAM_ROTATION_B = 5  # theta_beta
+SPATIAL_BEAM_MOMENT_T = 6  # M_rot
+SPATIAL_BEAM_MOMENT_N = 7  # M_n
+SPATIAL_BEAM_MOMENT_B = 8  # M_beta
+SPATIAL_BEAM_FORCE_T = 9  # N
+SPATIAL_BEAM_FORCE_N = 10  # Q_n
+SPATIAL_BEAM_FORCE_B = 11  # Q_beta

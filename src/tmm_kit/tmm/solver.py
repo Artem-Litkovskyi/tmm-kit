@@ -5,7 +5,15 @@ import numpy.typing as npt
 import scipy.sparse as sp
 import scipy.sparse.linalg as spla
 
-from .base import ElementEdge, TMMElement, TMMEquation, TMMNode
+from .base import (
+    ElementEdge,
+    ElementGroups,
+    TMMElement,
+    TMMEquation,
+    TMMNode,
+    group_by_class,
+    stack_fields,
+)
 from .result import TMMResult
 
 
@@ -67,13 +75,13 @@ class TMMSolver:
         )
         blocks[:, 1] = np.eye(self.state_size)
 
-        for el_i, element in enumerate(self.elements):
-            tm_A, tm_b = element.get_transfer_eq(element.length)
+        lengths = np.array([element.length for element in self.elements])
+        tm_A, tm_b = ElementGroups(self.elements, self.state_size).get_transfer_eq(
+            np.arange(elements_n), lengths
+        )
 
-            blocks[el_i, 0] = -tm_A
-
-            row = self.state_size * el_i
-            f[row : row + self.state_size] = tm_b
+        blocks[:, 0] = -tm_A
+        f[:transfer_eqs_n] = tm_b.ravel()
 
         K_transfer = sp.bsr_matrix(
             (
@@ -84,28 +92,60 @@ class TMMSolver:
             shape=(transfer_eqs_n, unknowns_n),
         )
 
-        eqs = []
-
-        # Conjugation equations
-        for node in self.nodes:
-            eqs.extend(node.get_conjugation_eq())
-
-        # Boundary condition equations
-        eqs.extend(self.bcs)
-
-        # Add equations into the matrix as (row, column, coefficient) triplets.
+        # Conjugation and boundary condition equations are added into the matrix
+        # as (row, column, coefficient) triplets.
         # Repeated variables in the same equation are summed up.
-        rows, addends = [], []
-        for row, eq in enumerate(eqs):
-            rows.extend([row] * len(eq.left_side_addends))
+        rows, cols, coefficients = [], [], []
+
+        # The first equation row of each node, then of the boundary conditions
+        node_rows = np.cumsum([0] + [n.get_conjugation_eq_n() for n in self.nodes])
+
+        eqs, eq_rows = [], []
+        for cls, node_indices in group_by_class(self.nodes).items():
+            if not cls.vectorized:
+                for node_i in node_indices:
+                    node_eqs = self.nodes[node_i].get_conjugation_eq()
+                    eqs.extend(node_eqs)
+                    eq_rows.extend(range(node_rows[node_i], node_rows[node_i + 1]))
+                continue
+
+            # Each equation of the stacked node stands for one equation per node
+            stacked = stack_fields([self.nodes[i] for i in node_indices])
+            for eq_i, eq in enumerate(stacked.get_conjugation_eq()):
+                group_rows = node_rows[node_indices] + eq_i
+                f[transfer_eqs_n + group_rows] = eq.right_side
+
+                for element_i, element_edge, state_var_i, k in eq.left_side_addends:
+                    group_cols = self._global_matrix_index_of_var(
+                        element_i, element_edge, state_var_i
+                    )
+                    rows.append(group_rows)
+                    cols.append(np.broadcast_to(group_cols, group_rows.shape))
+                    coefficients.append(np.broadcast_to(k, group_rows.shape))
+
+        eqs.extend(self.bcs)
+        eq_rows.extend(range(node_rows[-1], node_rows[-1] + len(self.bcs)))
+
+        addend_rows, addends = [], []
+        for row, eq in zip(eq_rows, eqs):
+            addend_rows.extend([row] * len(eq.left_side_addends))
             addends.extend(eq.left_side_addends)
             f[transfer_eqs_n + row] = eq.right_side
 
-        element_i, element_edge, state_var_i, k = zip(*addends)
-        cols = self._global_matrix_index_of_var(element_i, element_edge, state_var_i)
+        if addends:
+            element_i, element_edge, state_var_i, k = zip(*addends)
+            rows.append(addend_rows)
+            cols.append(
+                self._global_matrix_index_of_var(element_i, element_edge, state_var_i)
+            )
+            coefficients.append(k)
 
         K_eqs = sp.coo_matrix(
-            (k, (rows, cols)), shape=(len(eqs), unknowns_n), dtype=np.float64
+            (
+                np.concatenate(coefficients, dtype=np.float64),
+                (np.concatenate(rows), np.concatenate(cols)),
+            ),
+            shape=(unknowns_n - transfer_eqs_n, unknowns_n),
         )
 
         K = sp.vstack((K_transfer, K_eqs), format="csr")

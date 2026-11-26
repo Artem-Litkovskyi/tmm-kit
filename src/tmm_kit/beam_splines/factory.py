@@ -100,9 +100,8 @@ def create_cbs_elements_and_nodes(
         Key - argument name.
         Value - array of argument values per node.
     dummy_nodes_per_element
-        Number of dummy nodes inserted into each element:
-        a scalar applies the same number to every element;
-        an array specifies a number for each element.
+        Number of dummy nodes that were inserted into each element
+        by the refine_polyline function.
 
     Return
     ------
@@ -117,10 +116,7 @@ def create_cbs_elements_and_nodes(
 
     element_lengths = np.linalg.norm(np.diff(polyline_arr, axis=0), axis=1)
     if np.any(element_lengths <= 0):
-        raise ValueError(
-            "Supports can't share the same t coordinate"
-            "and must be sorted in the increasing order"
-        )
+        raise ValueError("Adjacent polyline points can't coincide")
 
     support_t = np.concatenate(([0.0], np.cumsum(element_lengths)))
 
@@ -136,8 +132,14 @@ def create_cbs_elements_and_nodes(
         dummies_per_el_arr = np.repeat(dummies_per_el_arr.item(), real_elements_n)
     elif dummies_per_el_arr.size != real_elements_n:
         raise ValueError(
-            f"Length of new_points_per_element ({dummies_per_el_arr.size}) "
+            f"Length of dummy_nodes_per_element ({dummies_per_el_arr.size}) "
             f"must match the number of elements ({real_elements_n})."
+        )
+    sub_elements_n = int(np.sum(dummies_per_el_arr + 1))
+    if sub_elements_n != element_lengths.size:
+        raise ValueError(
+            f"dummy_nodes_per_element splits the elements into {sub_elements_n} "
+            f"polyline segments, but the polyline has {element_lengths.size}."
         )
 
     # Process data

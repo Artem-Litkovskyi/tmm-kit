@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import ClassVar
 
 import numpy as np
 import numpy.typing as npt
@@ -9,6 +10,8 @@ from tmm_kit.tmm.base import TMMElement, stack_transfer_eq
 @dataclass(slots=True)
 class ElectricalElement(TMMElement):
     """Electrical circuit element."""
+
+    vectorized: ClassVar[bool] = True
 
     resistance: float
     voltage: float

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import ClassVar
 
 import numpy as np
 import numpy.typing as npt
@@ -9,6 +10,8 @@ from tmm_kit.tmm.base import TMMElement, stack_transfer_eq
 @dataclass(slots=True)
 class BeamElement(TMMElement):
     """Standard beam spline segment."""
+
+    vectorized: ClassVar[bool] = True
 
     def get_transfer_eq(self, s: npt.ArrayLike) -> tuple[np.ndarray, np.ndarray]:
         """Return the transfer matrix K and right vector f."""
@@ -37,6 +40,8 @@ class BeamElementStretched(TMMElement):
         A force that pulls from the edges of the beam.
         Higher values result in higher curvature but shorter length.
     """
+
+    vectorized: ClassVar[bool] = True
 
     stretching_force: float
 
@@ -74,6 +79,8 @@ class BeamElementCompressed(TMMElement):
         A force that pushes from the edges of the beam.
         Higher values result in lower curvature but longer length.
     """
+
+    vectorized: ClassVar[bool] = True
 
     compressing_force: float
 
@@ -114,6 +121,8 @@ class BeamElementOnElasticFoundation(TMMElement):
     bandwidth
         A smoothing bandwidth (g) that controls the foundation stiffness.
     """
+
+    vectorized: ClassVar[bool] = True
 
     start_foundation: float
     end_foundation: float

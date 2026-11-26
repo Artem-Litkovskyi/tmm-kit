@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from dataclasses import dataclass
+from typing import ClassVar
 
 from tmm_kit.beam_splines.constants import (
     BEAM_DISPLACEMENT,
@@ -76,6 +77,8 @@ class BeamPinnedSupport(BeamSplineNode):
         Support displacement at the node.
     """
 
+    vectorized: ClassVar[bool] = True
+
     displacement: float
 
     def get_conjugation_eq(self) -> list[TMMEquation]:
@@ -112,6 +115,8 @@ class BeamElasticSupport(BeamSplineNode):
     stiffness
         Spring stiffness of the support.
     """
+
+    vectorized: ClassVar[bool] = True
 
     displacement: float
     stiffness: float
@@ -151,6 +156,8 @@ class BeamElasticSupportInverted(BeamSplineNode):
         Spring compliance of the support (compliance = 1 / stiffness).
     """
 
+    vectorized: ClassVar[bool] = True
+
     displacement: float
     compliance: float
 
@@ -180,6 +187,8 @@ class BeamDummyNode(BeamSplineNode):
 
     Enforce continuity of all beam state variables.
     """
+
+    vectorized: ClassVar[bool] = True
 
     def get_conjugation_eq(self) -> list[TMMEquation]:
         """Return the conjugation equations connecting elements."""

@@ -66,7 +66,6 @@ def refine_polyline(
         dummy_numbers_arr = np.repeat(dummy_numbers_arr.item(), segments_n)
 
     real_mask = real_points_mask(real_points_n, dummy_numbers_arr)
-    real_indices = np.flatnonzero(real_mask)
 
     new_polyline = np.zeros(
         (real_mask.size, spline.polyline.shape[1]), dtype=np.float64
@@ -83,17 +82,13 @@ def refine_polyline(
         :, None
     ] * spline.evaluate_spline_normal(spline.support_t)
 
-    for i, dummy_n in enumerate(dummy_numbers_arr):
-        if dummy_n == 0:
-            continue
+    # Inserted points: the k-th of n points of a segment is at k / (n + 1) of its length
+    dummy_segments = np.repeat(np.arange(segments_n), dummy_numbers_arr)
+    first_dummies = np.cumsum(dummy_numbers_arr) - dummy_numbers_arr
+    k = np.arange(dummy_segments.size) - first_dummies[dummy_segments] + 1
+    s = element_lengths[dummy_segments] * k / (dummy_numbers_arr[dummy_segments] + 1)
 
-        s = np.linspace(0.0, element_lengths[i], dummy_n + 2)[1:-1]
-        dummy_indices = np.arange(
-            real_indices[i] + 1,
-            real_indices[i + 1],
-        )
-
-        new_polyline[dummy_indices] = spline.evaluate_element_point(i, s)
+    new_polyline[~real_mask] = spline.evaluate_element_point(dummy_segments, s)
 
     return new_polyline
 
@@ -130,12 +125,10 @@ def real_points_mask(
     if np.any(dummy_numbers_arr < 0):
         raise ValueError("The number of dummy points must be non-negative.")
 
-    mask = np.concatenate(
-        [
-            np.concatenate(([True], np.zeros(dummy_n, dtype=bool)))
-            for dummy_n in dummy_numbers_arr
-        ]
-        + [np.array([True])]
-    )
+    # Each real point is followed by the dummy points of its segment
+    real_indices = np.concatenate(([0], np.cumsum(dummy_numbers_arr + 1)))
+
+    mask = np.zeros(real_indices[-1] + 1, dtype=bool)
+    mask[real_indices] = True
 
     return mask

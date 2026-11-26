@@ -1,33 +1,28 @@
 import numpy as np
 import pytest
 
+import tmm_kit.electrical as el
 from tmm_kit import ElementEdge, TMMEquation, TMMResult, TMMSolver
-from tmm_kit.electrical import (
-    ELECTRICAL_STATE_SIZE,
-    ElectricalElement,
-    ElectricalNode,
-    electrical_circuit_boundary_node,
-)
 
 # Electrical circuit setup
 ELEMENTS = [
-    ElectricalElement(1, 2, 2),  # 0. 2R resistor, 2E battery
-    ElectricalElement(1, 6, 0),  # 1. 6R resistor
-    ElectricalElement(1, 0, 1),  # 2. E battery
-    ElectricalElement(1, 0, 0),  # 3. Wire
-    ElectricalElement(1, 2, 0),  # 4. 2R resistor
-    ElectricalElement(1, 4, 0),  # 5. 4R resistor
+    el.ElectricalElement(1, 2, 2),  # 0. 2R resistor, 2E battery
+    el.ElectricalElement(1, 6, 0),  # 1. 6R resistor
+    el.ElectricalElement(1, 0, 1),  # 2. E battery
+    el.ElectricalElement(1, 0, 0),  # 3. Wire
+    el.ElectricalElement(1, 2, 0),  # 4. 2R resistor
+    el.ElectricalElement(1, 4, 0),  # 5. 4R resistor
 ]
 
 NODES = [
-    ElectricalNode([2], [0, 3]),
-    ElectricalNode([0, 4], [1]),
-    ElectricalNode([1, 5], [2]),
+    el.ElectricalNode([2], [0, 3]),
+    el.ElectricalNode([0, 4], [1]),
+    el.ElectricalNode([1, 5], [2]),
 ]
 
 # Replace the last node with boundary conditions with a fixed potential
 # so that the system of equations has exactly one solution.
-BCS = electrical_circuit_boundary_node([3], [4, 5], 1)
+BCS = el.electrical_circuit_boundary_node([3], [4, 5], 1)
 
 I1 = 9 / 14
 I2 = 15 / 28
@@ -58,7 +53,7 @@ DESIRED_EDGE_STATES = np.array(
 
 def test_tmm_solver():
     solver = TMMSolver(
-        ELECTRICAL_STATE_SIZE,
+        el.ELECTRICAL_STATE_SIZE,
         ELEMENTS,
         NODES,
         BCS,
@@ -130,8 +125,8 @@ def test_tmm_result_get_all_edge_states():
 def _solve_single_resistor(boundary_conditions):
     # A single 2R resistor, so the transfer equations give E_end = E_start - 2 I
     solver = TMMSolver(
-        ELECTRICAL_STATE_SIZE,
-        [ElectricalElement(1, 2, 0)],
+        el.ELECTRICAL_STATE_SIZE,
+        [el.ElectricalElement(1, 2, 0)],
         [],
         boundary_conditions,
     )

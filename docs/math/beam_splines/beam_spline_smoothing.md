@@ -25,6 +25,15 @@ $$D_i = \frac{L_{i+1}}{g^4}$$
 
 where $g$ is a bandwidth.
 
+| Math                                           | Code                                    | Parameters                                                   |
+|------------------------------------------------|-----------------------------------------|--------------------------------------------------------------|
+| Elastic support                                | `BeamElasticSupport`                    | `displacement` – $\Pi_{i+1}$, `stiffness` – $D_i$            |
+| Elastic support via compliance (very stiff)    | `BeamElasticSupportInverted`            | `displacement` – $\Pi_{i+1}$, `compliance` – $\frac{1}{D_i}$ |
+| Elastic supports at the first and last nodes   | `elastic_ends`, `elastic_ends_inverted` | displacements and stiffnesses (compliances)                  |
+| Elastic support that closes a curve            | `elastic_loop`, `elastic_loop_inverted` | displacement and stiffness (compliance)                      |
+| Adaptive stiffness $D_i$                       | `adaptive_stiffness`                    | `element_length` – $L_{i+1}$, `bandwidth` – $g$              |
+| Mean length of the neighbor elements for $D_i$ | `centered_element_length`               | `element_length` – all $L_i$                                 |
+
 ## Beam on Elastic Foundation
 
 ### Beam Model
@@ -52,6 +61,11 @@ The solution and the resulting transfer matrix are not documented here, because 
 We will say only that the transfer matrix takes into account the elastic force, so all four conjugation equations
 must enforce continuity, unlike in the case of the beam on discrete elastic supports.
 
+| Math                                   | Code                             | Parameters                                                                      |
+|----------------------------------------|----------------------------------|---------------------------------------------------------------------------------|
+| Beam segment on the elastic foundation | `BeamElementOnElasticFoundation` | `start_foundation` – $\Pi_i$, `end_foundation` – $\Pi_{i+1}$, `bandwidth` – $g$ |
+| Node with a continuous state           | `BeamDummyNode`                  |                                                                                 |
+
 ### Beam Response (Noise Attenuation Ratio)
 
 Let's consider a periodic signal:
@@ -65,3 +79,7 @@ $$W(t) = \Delta \frac{\xi^4}{g^4 + \xi^4} \cos{\frac{t}{\xi}}$$
 Now we can find a ratio that describes the beam response to the signal of a certain frequency:
 
 $$\varepsilon(\xi; g) = \frac{W(t)}{Y(t)} = \frac{\xi^4}{g^4 + \xi^4}$$
+
+| Math                           | Code                        | Parameters                             |
+|--------------------------------|-----------------------------|----------------------------------------|
+| Response $\varepsilon(\xi; g)$ | `smoothing_spline_response` | `t_divider` – $\xi$, `bandwidth` – $g$ |
